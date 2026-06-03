@@ -1,70 +1,37 @@
 # Sidecar Integration Guide
 
-`CLIProxyAPI` can run as a local sidecar for desktop shells, web panels, editor extensions, or other local controllers.
+`CLIProxyAPI` can be controlled by an external desktop shell as a local sidecar process. The shell owns UI and process lifecycle; `CLIProxyAPI` owns proxy execution, provider adapters, OAuth/login flows, auth storage, model registry, and safe status endpoints.
 
-## Shell/Core Separation
+For the full contract, see `docs/superpowers/specs/2026-06-04-desktop-shell-sidecar-contract-design.md`.
 
-The shell owns user interaction. The core owns proxy execution.
+## Recommended Startup
 
-Examples of shells:
-
-- Tauri or Electron desktop tools
-- web management panels
-- VS Code extensions
-- command-line wrappers
-
-`CLIProxyAPI` should remain the core service. Shells should start it, pass explicit configuration, monitor it, and call its HTTP APIs.
-
-## Recommended Launch Commands
-
-Start the proxy service with a shell-owned config file:
+Build the server binary first:
 
 ```text
-cli-proxy-api --config <config.yaml> --local-model --no-browser
+go build -o cli-proxy-api ./cmd/server
 ```
 
-Start with the sidecar profile enabled:
+Start the sidecar with an explicit config file:
 
 ```text
-cli-proxy-api --sidecar --config <config.yaml>
+cli-proxy-api --config <path-to-config.yaml>
 ```
 
-The sidecar profile applies safe local-controller defaults:
-
-- `--local-model`
-- `--no-browser`
-- `127.0.0.1` host when the config has no explicit host
-
-Write a launch metadata file for a shell/controller:
+Optional deterministic local-model startup:
 
 ```text
-cli-proxy-api --sidecar --config <config.yaml> --sidecar-status-file <runtime-dir>/server.json
+cli-proxy-api --config <path-to-config.yaml> --local-model
 ```
 
-Start an isolated local service mode:
-
-```text
-cli-proxy-api --standalone --config <config.yaml> --local-model --no-browser
-```
-
-Run Codex OAuth login as a separate foreground operation:
-
-```text
-cli-proxy-api --codex-login --config <config.yaml> --no-browser
-```
-
-Run Codex device login when browser automation is not desired:
-
-```text
-cli-proxy-api --codex-device-login --config <config.yaml> --no-browser
-```
+Do not use `--standalone` as a generic desktop sidecar flag. It currently belongs to TUI standalone behavior.
 
 ## Health and Status
 
-Use `/healthz` for a minimal readiness check:
+Use `/healthz` for liveness:
 
 ```text
-GET /healthz
+GET http://127.0.0.1:<port>/healthz
 ```
 
 Expected response:
@@ -73,110 +40,49 @@ Expected response:
 {"status":"ok"}
 ```
 
-Use `/statusz` for machine-readable sidecar metadata:
+Use `/statusz` for machine-readable readiness and safe runtime metadata:
 
 ```text
-GET /statusz
+GET http://127.0.0.1:<port>/statusz
 ```
 
-Expected response shape:
+The current core status value is `ready`. Other lifecycle states such as `starting`, `stopping`, or `crashed` should be maintained by the external shell unless explicitly added to the core in the future.
 
-```json
-{
-  "status": "ready",
-  "service": "CLIProxyAPI",
-  "build": {
-    "version": "dev",
-    "commit": "none",
-    "buildDate": "unknown"
-  },
-  "server": {
-    "host": "127.0.0.1",
-    "port": 8317,
-    "configPath": "C:/path/to/config.yaml",
-    "authDir": "C:/path/to/auths"
-  },
-  "runtime": {
-    "sidecar": true,
-    "tuiMode": false,
-    "standalone": false,
-    "localModel": true
-  },
-  "providers": {
-    "geminiApiKeys": 0,
-    "codexApiKeys": 0,
-    "claudeApiKeys": 0,
-    "openaiCompatibilityEntries": 0,
-    "vertexApiKeys": 0,
-    "oauthModelAliases": 0,
-    "homeEnabled": false
-  }
-}
+## Login Flows
+
+Run login flows as foreground subprocesses using the same config file:
+
+```text
+cli-proxy-api --codex-login --config <path-to-config.yaml>
+cli-proxy-api --codex-device-login --config <path-to-config.yaml>
+cli-proxy-api --claude-login --config <path-to-config.yaml>
 ```
 
-The status endpoint intentionally exposes only allowlisted metadata and must not expose API keys, OAuth tokens, management passwords, or provider secrets.
+Use `--no-browser` only when the shell wants to own browser opening or device-code presentation.
 
-## Sidecar Status File
+## Management API
 
-When `--sidecar-status-file` is provided, `CLIProxyAPI` writes a JSON file after the service starts successfully. This is useful when a controller launches the sidecar as a child process and needs the final localhost URL without scraping logs.
+The management API is optional and authenticated. Do not assume `/v0/management` exists after startup. If a desktop shell needs management APIs, configure a management secret deliberately and keep the service bound to localhost unless the user explicitly chooses remote access.
 
-Example `server.json`:
+## Logs
 
-```json
-{
-  "status": "ready",
-  "service": "CLIProxyAPI",
-  "pid": 12345,
-  "baseURL": "http://127.0.0.1:8317",
-  "healthURL": "http://127.0.0.1:8317/healthz",
-  "statusURL": "http://127.0.0.1:8317/statusz",
-  "configPath": "C:/path/to/config.yaml",
-  "authDir": "C:/path/to/auths",
-  "runtime": {
-    "sidecar": true,
-    "tuiMode": false,
-    "standalone": false,
-    "localModel": true
-  },
-  "build": {
-    "version": "dev",
-    "commit": "none",
-    "buildDate": "unknown"
-  },
-  "writtenAt": "2026-06-03T00:00:00Z"
-}
-```
+For Phase 1 integrations, capture child-process stdout and stderr. File log paths are resolved by the core and should not be hard-coded by shells.
 
-The file is intentionally small and contains only operational metadata. It must not contain API keys, OAuth tokens, management passwords, or provider secrets.
+## Example Controller
 
-## Controller Example
+A minimal process-launching controller is planned under `examples/sidecar-controller`.
 
-See `examples/sidecar-controller` for a minimal local controller. It reads `server.json` and verifies readiness through `HEAD /healthz`.
+Until that example lands, the integration baseline is:
 
-Example flow:
+1. Start `cli-proxy-api --config <path-to-config.yaml>` as a child process.
+2. Capture stdout and stderr.
+3. Poll `/healthz` until the HTTP server is alive.
+4. Call `/statusz` and wait for `status: "ready"`.
+5. Stop the child process gracefully when the shell exits.
 
-1. The shell starts `cli-proxy-api --sidecar --sidecar-status-file <runtime-dir>/server.json`.
-2. The shell waits for `server.json` to appear.
-3. The shell reads `healthURL`, `statusURL`, and `baseURL`.
-4. The shell verifies readiness with `HEAD /healthz`.
-5. The shell calls proxy or management APIs over localhost.
+## Security Defaults
 
-## Configuration Ownership
-
-The shell may create or edit a `CLIProxyAPI` `config.yaml`, but `CLIProxyAPI` does not read shell-specific configuration schemas.
-
-Recommended shell responsibilities:
-
-1. Choose a config file path.
-2. Choose an auth directory.
-3. Start `CLIProxyAPI` with explicit arguments.
-4. Poll `/healthz` or `/statusz` until ready.
-5. Call proxy and management APIs over localhost.
-6. Stop the sidecar process during application shutdown.
-
-## Security Notes
-
-- Prefer binding to `127.0.0.1` for desktop integrations.
-- Keep management APIs protected by configured credentials.
-- Do not display raw tokens or API keys in shell logs.
-- Treat config and auth directories as sensitive local data.
+- Prefer `host: 127.0.0.1` for desktop integrations.
+- Treat `auth-dir` contents as sensitive.
+- Do not show raw provider tokens, OAuth tokens, API keys, or management passwords.
+- Keep management APIs localhost-only unless the user explicitly enables remote exposure.
