@@ -24,7 +24,7 @@ import (
 //   - cfg: The application configuration
 //   - configPath: The path to the configuration file
 //   - localPassword: Optional password accepted for local management requests
-func StartService(cfg *config.Config, configPath string, localPassword string, runtimeInfo api.SidecarRuntimeInfo) {
+func StartService(cfg *config.Config, configPath string, localPassword string, runtimeInfo cliproxy.SidecarRuntimeInfo) {
 	builder := cliproxy.NewBuilder().
 		WithConfig(cfg).
 		WithConfigPath(configPath).
@@ -58,7 +58,7 @@ func StartService(cfg *config.Config, configPath string, localPassword string, r
 
 // StartServiceBackground starts the proxy service in a background goroutine
 // and returns a cancel function for shutdown and a done channel.
-func StartServiceBackground(cfg *config.Config, configPath string, localPassword string, runtimeInfo api.SidecarRuntimeInfo) (cancel func(), done <-chan struct{}) {
+func StartServiceBackground(cfg *config.Config, configPath string, localPassword string, runtimeInfo cliproxy.SidecarRuntimeInfo) (cancel func(), done <-chan struct{}) {
 	builder := cliproxy.NewBuilder().
 		WithConfig(cfg).
 		WithConfigPath(configPath).

@@ -64,6 +64,14 @@ type Hooks struct {
 	OnAfterStart func(*Service)
 }
 
+// SidecarRuntimeInfo is safe runtime metadata exposed through sidecar status endpoints.
+type SidecarRuntimeInfo struct {
+	Sidecar    bool `json:"sidecar"`
+	TUIMode    bool `json:"tuiMode"`
+	Standalone bool `json:"standalone"`
+	LocalModel bool `json:"localModel"`
+}
+
 // NewBuilder creates a Builder with default dependencies left unset.
 // Use the fluent interface methods to configure the service before calling Build().
 //
@@ -155,8 +163,13 @@ func (b *Builder) WithLocalManagementPassword(password string) *Builder {
 }
 
 // WithSidecarRuntimeInfo configures safe runtime metadata exposed by sidecar status endpoints.
-func (b *Builder) WithSidecarRuntimeInfo(info api.SidecarRuntimeInfo) *Builder {
-	b.serverOptions = append(b.serverOptions, api.WithSidecarRuntimeInfo(info))
+func (b *Builder) WithSidecarRuntimeInfo(info SidecarRuntimeInfo) *Builder {
+	b.serverOptions = append(b.serverOptions, api.WithSidecarRuntimeInfo(api.SidecarRuntimeInfo{
+		Sidecar:    info.Sidecar,
+		TUIMode:    info.TUIMode,
+		Standalone: info.Standalone,
+		LocalModel: info.LocalModel,
+	}))
 	return b
 }
 

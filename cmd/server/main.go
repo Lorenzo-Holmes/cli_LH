@@ -18,7 +18,6 @@ import (
 
 	"github.com/joho/godotenv"
 	configaccess "github.com/router-for-me/CLIProxyAPI/v7/internal/access/config_access"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/api"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/buildinfo"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/cmd"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
@@ -33,6 +32,7 @@ import (
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/tui"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
 	sdkAuth "github.com/router-for-me/CLIProxyAPI/v7/sdk/auth"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy"
 	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
 	log "github.com/sirupsen/logrus"
 )
@@ -526,7 +526,7 @@ func main() {
 
 	// Register built-in access providers before constructing services.
 	configaccess.Register(&cfg.SDKConfig)
-	runtimeInfo := api.SidecarRuntimeInfo{
+	runtimeInfo := cliproxy.SidecarRuntimeInfo{
 		TUIMode:    tuiMode,
 		Standalone: standalone,
 		LocalModel: localModel,
