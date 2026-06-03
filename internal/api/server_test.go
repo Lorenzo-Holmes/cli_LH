@@ -505,6 +505,7 @@ func TestStatuszReturnsMachineReadableSidecarStatus(t *testing.T) {
 		TUIMode:    true,
 		Standalone: true,
 		LocalModel: true,
+		Sidecar:    true,
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/statusz", nil)
@@ -536,6 +537,9 @@ func TestStatuszReturnsMachineReadableSidecarStatus(t *testing.T) {
 	}
 	if !resp.Runtime.TUIMode || !resp.Runtime.Standalone || !resp.Runtime.LocalModel {
 		t.Fatalf("runtime flags not reflected: %+v", resp.Runtime)
+	}
+	if !resp.Runtime.Sidecar {
+		t.Fatalf("runtime Sidecar flag should be true, got: %+v", resp.Runtime)
 	}
 }
 

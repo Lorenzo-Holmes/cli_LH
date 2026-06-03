@@ -12,6 +12,7 @@ type SidecarRuntimeInfo struct {
 	TUIMode    bool `json:"tuiMode"`
 	Standalone bool `json:"standalone"`
 	LocalModel bool `json:"localModel"`
+	Sidecar    bool `json:"sidecar"`
 }
 
 type sidecarBuildInfo struct {
