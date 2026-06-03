@@ -18,7 +18,7 @@ The implementation preserves the contract boundary documented in the spec:
 
 - Do not implement a desktop UI in this repository.
 - Do not introduce Tauri, Electron, React, Rust, or Node.js dependencies.
-- Do not add a new `--sidecar` flag in the documentation-only phase.
+- Do not change the existing `--sidecar` flag behavior in the documentation-only phase.
 - Do not add new core `/statusz` lifecycle values in the documentation-only phase.
 - Do not change `internal/translator/`.
 
@@ -60,9 +60,10 @@ Files:
 
 Steps:
 
-1. Replace obsolete shell-contract content that references unimplemented `--sidecar` or `--sidecar-status-file` behavior.
+1. Replace obsolete shell-contract content and align it with the current branch's implemented `--sidecar` and `--sidecar-status-file` behavior.
 2. Document the current supported baseline:
-   - `cli-proxy-api --config <path>` normal startup.
+   - `cli-proxy-api --sidecar --config <path>` shell/controller startup.
+   - Optional `--sidecar-status-file <path>` controller metadata output.
    - Optional `--local-model` startup.
    - `/healthz` for liveness.
    - `/statusz` for safe machine-readable readiness metadata.
@@ -73,8 +74,8 @@ Steps:
 
 Acceptance criteria:
 
-- The guide does not present future flags as current behavior.
-- The guide does not recommend `--standalone` as generic desktop sidecar startup.
+- The guide presents only implemented flags as current behavior.
+- The guide recommends `--sidecar`, not `--standalone`, as generic desktop shell startup.
 - The guide treats management APIs and `/keep-alive` as optional.
 - The guide does not include secrets, token examples, or raw credential paths.
 
@@ -179,7 +180,7 @@ go test ./...
 | Risk | Mitigation |
 | --- | --- |
 | Documentation promises future behavior as current behavior | Keep future features labeled as future extension candidates only. |
-| `--standalone` is mistaken for desktop sidecar mode | Explicitly document it as TUI-specific current behavior. |
+| `--standalone` is mistaken for desktop sidecar mode | Explicitly document it as TUI-specific current behavior and recommend `--sidecar` for shell/controller integrations. |
 | Management API is assumed to be always available | Document it as optional and authenticated. |
 | `/keep-alive` becomes a desktop baseline dependency | Keep `/healthz` and `/statusz` as the baseline probes. |
 | Status API leaks secrets in future changes | Add allowlist-based regression tests in Phase 2. |
@@ -190,5 +191,5 @@ go test ./...
 - `.gitignore` allows `docs/superpowers/**` to be tracked.
 - The formal sidecar contract spec exists under `docs/superpowers/specs/`.
 - This implementation plan exists under `docs/superpowers/plans/`.
-- `docs/sidecar-integration.md` matches the current implemented contract and does not advertise unimplemented flags as available.
+- `docs/sidecar-integration.md` matches the current implemented contract and does not advertise unimplemented behavior as available.
 - No Go files are modified in the documentation-only slice.

@@ -12,13 +12,31 @@ Build the server binary first:
 go build -o cli-proxy-api ./cmd/server
 ```
 
-Start the sidecar with an explicit config file:
+Start with an explicit config file:
 
 ```text
 cli-proxy-api --config <path-to-config.yaml>
 ```
 
-Optional deterministic local-model startup:
+For shell/controller integrations, use the sidecar profile:
+
+```text
+cli-proxy-api --sidecar --config <path-to-config.yaml>
+```
+
+The sidecar profile applies local-controller defaults while preserving explicit config values:
+
+- enables `--local-model`
+- enables `--no-browser`
+- defaults an empty host to `127.0.0.1`
+
+Optional status-file output for controllers:
+
+```text
+cli-proxy-api --sidecar --config <path-to-config.yaml> --sidecar-status-file <runtime-dir>/server.json
+```
+
+Direct deterministic local-model startup is also supported:
 
 ```text
 cli-proxy-api --config <path-to-config.yaml> --local-model
@@ -48,6 +66,12 @@ GET http://127.0.0.1:<port>/statusz
 
 The current core status value is `ready`. Other lifecycle states such as `starting`, `stopping`, or `crashed` should be maintained by the external shell unless explicitly added to the core in the future.
 
+When `--sidecar` is enabled, `/statusz.runtime.sidecar` is `true`.
+
+## Sidecar Status File
+
+When `--sidecar-status-file` is provided, `CLIProxyAPI` writes a small JSON metadata file after startup. The file includes only operational metadata such as `baseURL`, `healthURL`, `statusURL`, `configPath`, `authDir`, safe runtime flags, build metadata, and write time. It must not contain provider API keys, OAuth tokens, or management passwords.
+
 ## Login Flows
 
 Run login flows as foreground subprocesses using the same config file:
@@ -70,15 +94,16 @@ For Phase 1 integrations, capture child-process stdout and stderr. File log path
 
 ## Example Controller
 
-A minimal process-launching controller is planned under `examples/sidecar-controller`.
+A minimal process-launching controller is available under `examples/sidecar-controller`.
 
-Until that example lands, the integration baseline is:
+The integration baseline is:
 
-1. Start `cli-proxy-api --config <path-to-config.yaml>` as a child process.
+1. Start `cli-proxy-api --sidecar --config <path-to-config.yaml> --sidecar-status-file <runtime-dir>/server.json` as a child process.
 2. Capture stdout and stderr.
-3. Poll `/healthz` until the HTTP server is alive.
-4. Call `/statusz` and wait for `status: "ready"`.
-5. Stop the child process gracefully when the shell exits.
+3. Read the status file after startup.
+4. Poll `healthURL` until the HTTP server is alive.
+5. Call `statusURL` and wait for `status: "ready"`.
+6. Stop the child process gracefully when the shell exits.
 
 ## Security Defaults
 

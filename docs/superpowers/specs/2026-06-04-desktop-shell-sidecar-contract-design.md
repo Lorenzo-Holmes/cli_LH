@@ -84,6 +84,8 @@ Common existing flags that may matter to a shell:
 | Flag | Current role | Shell contract guidance |
 | --- | --- | --- |
 | `--config <path>` | Selects the configuration file. | Stable startup input for binary sidecar mode. |
+| `--sidecar` | Starts with local sidecar defaults for shell/controller integrations. | Stable desktop-shell profile on this branch. |
+| `--sidecar-status-file <path>` | Writes safe sidecar server metadata JSON after startup. | Optional controller discovery aid. |
 | `--local-model` | Disables remote model updates. | Useful for deterministic local startup or offline-friendly shell behavior. |
 | `--tui` | Starts terminal UI mode. | Not part of the desktop shell contract. |
 | `--standalone` | In TUI mode, starts an embedded local server. | Do not treat as a generic desktop sidecar flag. |
@@ -122,7 +124,7 @@ Current status response includes safe groups such as:
 - service name
 - build information
 - server host, port, config path, and auth directory
-- runtime flags such as TUI mode, standalone mode, and local-model mode
+- runtime flags such as sidecar mode, TUI mode, standalone mode, and local-model mode
 - provider summary counts without secrets
 
 Contract rules:
@@ -131,6 +133,7 @@ Contract rules:
 - `HEAD /statusz` should return HTTP 200 with no response body.
 - The current core status value is `ready`.
 - Additional status values such as `starting`, `degraded`, `stopping`, or `restart_required` are future extensions unless implemented explicitly.
+- `/statusz.runtime.sidecar` is part of the current branch runtime metadata and is `true` when `--sidecar` is enabled or equivalent SDK runtime metadata is supplied.
 - Desktop shells must ignore unknown fields.
 - Documented fields should be add-only where possible.
 - The status response must remain allowlist-based and must not expose API keys, management passwords, OAuth tokens, refresh tokens, provider credentials, or raw config secrets.
@@ -162,13 +165,13 @@ Contract split:
 Recommended external shell command:
 
 ```text
-cli-proxy-api --config <absolute-or-shell-owned-config-path>
+cli-proxy-api --sidecar --config <absolute-or-shell-owned-config-path>
 ```
 
 Optional additions:
 
 ```text
-cli-proxy-api --config <path> --local-model
+cli-proxy-api --sidecar --config <path> --sidecar-status-file <runtime-dir>/server.json
 ```
 
 The shell should:
@@ -182,6 +185,8 @@ The shell should:
 7. Mark the shell-side service as ready only after the probe succeeds.
 
 The shell should not require `--standalone` for normal desktop sidecar mode because that flag currently belongs to TUI standalone behavior.
+
+`--sidecar` currently applies local shell/controller defaults: it enables local-model behavior, enables no-browser login behavior, and defaults an empty host to `127.0.0.1`.
 
 ### Login and Import Startup
 
@@ -285,7 +290,7 @@ Future extension candidates:
 
 - Stable `GET /v0/management/logs/...` endpoints when management is enabled.
 - A safe log manifest endpoint.
-- A sidecar status file containing resolved log paths.
+- The existing sidecar status file may be expanded with additional safe resolved runtime paths.
 
 ## Management API Contract
 
@@ -435,8 +440,8 @@ For OAuth/login flows:
 
 - `--config` is the primary stable binary startup argument.
 - Login flags are foreground operations, not normal server startup modes.
-- `--standalone` should not be repurposed as the generic desktop-sidecar flag without a separate compatibility decision.
-- A future `--sidecar` flag may be introduced if repeated desktop integrations need a dedicated mode.
+- `--standalone` should not be repurposed as the generic desktop-sidecar flag.
+- `--sidecar` is the current dedicated desktop-shell profile on this branch.
 
 ### Directory Compatibility
 
@@ -472,6 +477,8 @@ This reference shell may be implemented in Tauri, Electron, native desktop, webv
 - Safe `/statusz` provider summaries without secret leakage.
 - Signal-aware service startup and shutdown paths.
 - SDK builder with sidecar runtime info.
+- Sidecar profile startup with `--sidecar`.
+- Safe sidecar status-file output with `--sidecar-status-file`.
 - Optional management routes controlled by secret configuration or runtime environment.
 - Optional `/keep-alive` when explicitly enabled by server construction.
 
@@ -481,16 +488,18 @@ This reference shell may be implemented in Tauri, Electron, native desktop, webv
 - Runtime local management password.
 - File log discovery.
 - Request/error log display.
+- `--sidecar` for local shell/controller defaults.
+- `--sidecar-status-file` for controller discovery metadata.
 - `--local-model` for deterministic registry behavior.
 - Login flows with shell-controlled browser behavior via `--no-browser`.
 
 ### Future Extension Candidates
 
-- Dedicated `--sidecar` mode.
+- Additional sidecar profile defaults, if needed.
 - Richer core lifecycle statuses beyond `ready`.
 - Stable account status API that exposes safe account metadata only.
 - Stable log manifest or log streaming API.
-- Sidecar manifest/status file for shells that cannot rely on HTTP during startup.
+- Additional sidecar status-file fields for shells that need safe runtime discovery.
 - Explicit restart-required signaling.
 - Port negotiation or dynamic-port discovery.
 - Reference controller example that starts, probes, and stops the sidecar.
@@ -515,7 +524,7 @@ This reference shell may be implemented in Tauri, Electron, native desktop, webv
 
 ### Phase 3: Sidecar Ergonomics
 
-- Consider a dedicated `--sidecar` flag if needed.
+- Refine `--sidecar` ergonomics if additional desktop integrations need shared defaults.
 - Consider a stable resolved-runtime manifest endpoint or file.
 - Improve login subprocess output for shell parsing without leaking secrets.
 - Improve account-safe summary APIs through authenticated management routes.
