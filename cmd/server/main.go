@@ -44,12 +44,31 @@ var (
 	DefaultConfigPath = ""
 )
 
+type runtimeFlagState struct {
+	Sidecar    bool
+	TUIMode    bool
+	Standalone bool
+	LocalModel bool
+	NoBrowser  bool
+}
+
 // init initializes the shared logger setup.
 func init() {
 	logging.SetupBaseLogger()
 	buildinfo.Version = Version
 	buildinfo.Commit = Commit
 	buildinfo.BuildDate = BuildDate
+}
+
+func applySidecarProfileDefaults(cfg *config.Config, flags *runtimeFlagState) {
+	if cfg == nil || flags == nil || !flags.Sidecar {
+		return
+	}
+	if strings.TrimSpace(cfg.Host) == "" {
+		cfg.Host = "127.0.0.1"
+	}
+	flags.LocalModel = true
+	flags.NoBrowser = true
 }
 
 // main is the entry point of the application.
@@ -78,6 +97,8 @@ func main() {
 	var tuiMode bool
 	var standalone bool
 	var localModel bool
+	var sidecar bool
+	var sidecarStatusFile string
 
 	// Define command-line flags for different operation modes.
 	flag.BoolVar(&login, "login", false, "Login Google Account")
@@ -99,6 +120,8 @@ func main() {
 	flag.BoolVar(&tuiMode, "tui", false, "Start with terminal management UI")
 	flag.BoolVar(&standalone, "standalone", false, "In TUI mode, start an embedded local server")
 	flag.BoolVar(&localModel, "local-model", false, "Use embedded model catalog only, skip remote model fetching")
+	flag.BoolVar(&sidecar, "sidecar", false, "Start with local sidecar defaults for shell/controller integrations")
+	flag.StringVar(&sidecarStatusFile, "sidecar-status-file", "", "Write sidecar server metadata JSON to this file after startup")
 
 	flag.CommandLine.Usage = func() {
 		out := flag.CommandLine.Output()
@@ -507,6 +530,17 @@ func main() {
 	}
 	managementasset.SetCurrentConfig(cfg)
 
+	runtimeFlags := runtimeFlagState{
+		Sidecar:    sidecar,
+		TUIMode:    tuiMode,
+		Standalone: standalone,
+		LocalModel: localModel,
+		NoBrowser:  noBrowser,
+	}
+	applySidecarProfileDefaults(cfg, &runtimeFlags)
+	localModel = runtimeFlags.LocalModel
+	noBrowser = runtimeFlags.NoBrowser
+
 	// Create login options to be used in authentication flows.
 	options := &cmd.LoginOptions{
 		NoBrowser:    noBrowser,
@@ -527,9 +561,14 @@ func main() {
 	// Register built-in access providers before constructing services.
 	configaccess.Register(&cfg.SDKConfig)
 	runtimeInfo := cliproxy.SidecarRuntimeInfo{
-		TUIMode:    tuiMode,
-		Standalone: standalone,
-		LocalModel: localModel,
+		Sidecar:    runtimeFlags.Sidecar,
+		TUIMode:    runtimeFlags.TUIMode,
+		Standalone: runtimeFlags.Standalone,
+		LocalModel: runtimeFlags.LocalModel,
+	}
+	sidecarOptions := cmd.SidecarOptions{
+		RuntimeInfo: runtimeInfo,
+		StatusFile:  sidecarStatusFile,
 	}
 
 	// Handle different command modes based on the provided flags.
@@ -605,7 +644,7 @@ func main() {
 					password = localMgmtPassword
 				}
 
-				cancel, done := cmd.StartServiceBackground(cfg, configFilePath, password, runtimeInfo)
+				cancel, done := cmd.StartServiceBackground(cfg, configFilePath, password, sidecarOptions)
 
 				client := tui.NewClient(cfg.Port, password)
 				ready := false
@@ -654,7 +693,7 @@ func main() {
 			} else if cfg.Home.Enabled {
 				log.Info("Home mode: remote model updates disabled")
 			}
-			cmd.StartService(cfg, configFilePath, password, runtimeInfo)
+			cmd.StartService(cfg, configFilePath, password, sidecarOptions)
 		}
 	}
 }

@@ -16,6 +16,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// SidecarOptions carries safe sidecar metadata and optional status-file output settings.
+type SidecarOptions struct {
+	RuntimeInfo cliproxy.SidecarRuntimeInfo
+	StatusFile  string
+}
+
 // StartService builds and runs the proxy service using the exported SDK.
 // It creates a new proxy service instance, sets up signal handling for graceful shutdown,
 // and starts the service with the provided configuration.
@@ -24,12 +30,13 @@ import (
 //   - cfg: The application configuration
 //   - configPath: The path to the configuration file
 //   - localPassword: Optional password accepted for local management requests
-func StartService(cfg *config.Config, configPath string, localPassword string, runtimeInfo cliproxy.SidecarRuntimeInfo) {
+func StartService(cfg *config.Config, configPath string, localPassword string, sidecarOptions SidecarOptions) {
 	builder := cliproxy.NewBuilder().
 		WithConfig(cfg).
 		WithConfigPath(configPath).
 		WithLocalManagementPassword(localPassword).
-		WithSidecarRuntimeInfo(runtimeInfo)
+		WithSidecarRuntimeInfo(sidecarOptions.RuntimeInfo).
+		WithHooks(sidecarHooks(cfg, configPath, sidecarOptions))
 
 	ctxSignal, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
@@ -58,12 +65,13 @@ func StartService(cfg *config.Config, configPath string, localPassword string, r
 
 // StartServiceBackground starts the proxy service in a background goroutine
 // and returns a cancel function for shutdown and a done channel.
-func StartServiceBackground(cfg *config.Config, configPath string, localPassword string, runtimeInfo cliproxy.SidecarRuntimeInfo) (cancel func(), done <-chan struct{}) {
+func StartServiceBackground(cfg *config.Config, configPath string, localPassword string, sidecarOptions SidecarOptions) (cancel func(), done <-chan struct{}) {
 	builder := cliproxy.NewBuilder().
 		WithConfig(cfg).
 		WithConfigPath(configPath).
 		WithLocalManagementPassword(localPassword).
-		WithSidecarRuntimeInfo(runtimeInfo)
+		WithSidecarRuntimeInfo(sidecarOptions.RuntimeInfo).
+		WithHooks(sidecarHooks(cfg, configPath, sidecarOptions))
 
 	ctx, cancelFn := context.WithCancel(context.Background())
 	doneCh := make(chan struct{})
@@ -83,6 +91,16 @@ func StartServiceBackground(cfg *config.Config, configPath string, localPassword
 	}()
 
 	return cancelFn, doneCh
+}
+
+func sidecarHooks(cfg *config.Config, configPath string, options SidecarOptions) cliproxy.Hooks {
+	return cliproxy.Hooks{
+		OnAfterStart: func(*cliproxy.Service) {
+			if errWrite := writeSidecarStatusFile(options.StatusFile, cfg, configPath, options.RuntimeInfo); errWrite != nil {
+				log.Errorf("failed to write sidecar status file: %v", errWrite)
+			}
+		},
+	}
 }
 
 // WaitForCloudDeploy waits indefinitely for shutdown signals in cloud deploy mode
