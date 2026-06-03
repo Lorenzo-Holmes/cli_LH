@@ -23,6 +23,24 @@ Start the proxy service with a shell-owned config file:
 cli-proxy-api --config <config.yaml> --local-model --no-browser
 ```
 
+Start with the sidecar profile enabled:
+
+```text
+cli-proxy-api --sidecar --config <config.yaml>
+```
+
+The sidecar profile applies safe local-controller defaults:
+
+- `--local-model`
+- `--no-browser`
+- `127.0.0.1` host when the config has no explicit host
+
+Write a launch metadata file for a shell/controller:
+
+```text
+cli-proxy-api --sidecar --config <config.yaml> --sidecar-status-file <runtime-dir>/server.json
+```
+
 Start an isolated local service mode:
 
 ```text
@@ -79,6 +97,7 @@ Expected response shape:
     "authDir": "C:/path/to/auths"
   },
   "runtime": {
+    "sidecar": true,
     "tuiMode": false,
     "standalone": false,
     "localModel": true
@@ -96,6 +115,51 @@ Expected response shape:
 ```
 
 The status endpoint intentionally exposes only allowlisted metadata and must not expose API keys, OAuth tokens, management passwords, or provider secrets.
+
+## Sidecar Status File
+
+When `--sidecar-status-file` is provided, `CLIProxyAPI` writes a JSON file after the service starts successfully. This is useful when a controller launches the sidecar as a child process and needs the final localhost URL without scraping logs.
+
+Example `server.json`:
+
+```json
+{
+  "status": "ready",
+  "service": "CLIProxyAPI",
+  "pid": 12345,
+  "baseURL": "http://127.0.0.1:8317",
+  "healthURL": "http://127.0.0.1:8317/healthz",
+  "statusURL": "http://127.0.0.1:8317/statusz",
+  "configPath": "C:/path/to/config.yaml",
+  "authDir": "C:/path/to/auths",
+  "runtime": {
+    "sidecar": true,
+    "tuiMode": false,
+    "standalone": false,
+    "localModel": true
+  },
+  "build": {
+    "version": "dev",
+    "commit": "none",
+    "buildDate": "unknown"
+  },
+  "writtenAt": "2026-06-03T00:00:00Z"
+}
+```
+
+The file is intentionally small and contains only operational metadata. It must not contain API keys, OAuth tokens, management passwords, or provider secrets.
+
+## Controller Example
+
+See `examples/sidecar-controller` for a minimal local controller. It reads `server.json` and verifies readiness through `HEAD /healthz`.
+
+Example flow:
+
+1. The shell starts `cli-proxy-api --sidecar --sidecar-status-file <runtime-dir>/server.json`.
+2. The shell waits for `server.json` to appear.
+3. The shell reads `healthURL`, `statusURL`, and `baseURL`.
+4. The shell verifies readiness with `HEAD /healthz`.
+5. The shell calls proxy or management APIs over localhost.
 
 ## Configuration Ownership
 

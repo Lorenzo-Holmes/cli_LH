@@ -114,6 +114,7 @@ CLIProxyAPI 已内置对 [Amp CLI](https://ampcode.com) 和 Amp IDE 扩展的支
 - 认证: [docs/sdk-access_CN.md](docs/sdk-access_CN.md)
 - 凭据加载/更新: [docs/sdk-watcher_CN.md](docs/sdk-watcher_CN.md)
 - Sidecar 集成指南：[docs/sidecar-integration.md](docs/sidecar-integration.md)
+- Sidecar Controller 示例：`examples/sidecar-controller`
 - 自定义 Provider 示例：`examples/custom-provider`
 
 ## 贡献
