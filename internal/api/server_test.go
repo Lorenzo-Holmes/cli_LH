@@ -498,3 +498,81 @@ func TestDefaultRequestLoggerFactory_UsesResolvedLogDirectory(t *testing.T) {
 		}
 	}
 }
+
+func TestStatuszReturnsMachineReadableSidecarStatus(t *testing.T) {
+	server := newTestServer(t)
+	server.sidecarRuntime = SidecarRuntimeInfo{
+		TUIMode:    true,
+		Standalone: true,
+		LocalModel: true,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/statusz", nil)
+	w := httptest.NewRecorder()
+	server.engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("unexpected status code: got %d want %d; body=%s", w.Code, http.StatusOK, w.Body.String())
+	}
+
+	var resp sidecarStatusResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to parse response JSON: %v; body=%s", err, w.Body.String())
+	}
+	if resp.Status != "ready" {
+		t.Fatalf("status = %q, want ready", resp.Status)
+	}
+	if resp.Service != "CLIProxyAPI" {
+		t.Fatalf("service = %q, want CLIProxyAPI", resp.Service)
+	}
+	if resp.Build.Version == "" || resp.Build.Commit == "" || resp.Build.BuildDate == "" {
+		t.Fatalf("build metadata is incomplete: %+v", resp.Build)
+	}
+	if resp.Server.ConfigPath == "" {
+		t.Fatalf("config path should be present")
+	}
+	if resp.Server.AuthDir == "" {
+		t.Fatalf("auth dir should be present")
+	}
+	if !resp.Runtime.TUIMode || !resp.Runtime.Standalone || !resp.Runtime.LocalModel {
+		t.Fatalf("runtime flags not reflected: %+v", resp.Runtime)
+	}
+}
+
+func TestStatuszHeadHasNoBody(t *testing.T) {
+	server := newTestServer(t)
+
+	req := httptest.NewRequest(http.MethodHead, "/statusz", nil)
+	w := httptest.NewRecorder()
+	server.engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("unexpected status code: got %d want %d; body=%s", w.Code, http.StatusOK, w.Body.String())
+	}
+	if w.Body.Len() != 0 {
+		t.Fatalf("expected empty body for HEAD request, got %q", w.Body.String())
+	}
+}
+
+func TestStatuszOmitsSecrets(t *testing.T) {
+	server := newTestServer(t)
+	server.cfg.RemoteManagement.SecretKey = "management-secret-value"
+	server.cfg.APIKeys = []string{"api-secret-value"}
+	server.cfg.GeminiKey = []proxyconfig.GeminiKey{{APIKey: "gemini-secret-value"}}
+	server.cfg.CodexKey = []proxyconfig.CodexKey{{APIKey: "codex-secret-value"}}
+	server.cfg.ClaudeKey = []proxyconfig.ClaudeKey{{APIKey: "claude-secret-value"}}
+
+	req := httptest.NewRequest(http.MethodGet, "/statusz", nil)
+	w := httptest.NewRecorder()
+	server.engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("unexpected status code: got %d want %d; body=%s", w.Code, http.StatusOK, w.Body.String())
+	}
+	body := w.Body.String()
+	for _, secret := range []string{"management-secret-value", "api-secret-value", "gemini-secret-value", "codex-secret-value", "claude-secret-value"} {
+		if strings.Contains(body, secret) {
+			t.Fatalf("status response leaked secret %q: %s", secret, body)
+		}
+	}
+}

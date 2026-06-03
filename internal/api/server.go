@@ -59,6 +59,7 @@ type serverOptionConfig struct {
 	keepAliveTimeout     time.Duration
 	keepAliveOnTimeout   func()
 	postAuthHook         auth.PostAuthHook
+	sidecarRuntime       SidecarRuntimeInfo
 }
 
 // ServerOption customises HTTP server construction.
@@ -126,6 +127,13 @@ func WithPostAuthHook(hook auth.PostAuthHook) ServerOption {
 	}
 }
 
+// WithSidecarRuntimeInfo records safe runtime mode metadata for machine-readable status endpoints.
+func WithSidecarRuntimeInfo(info SidecarRuntimeInfo) ServerOption {
+	return func(cfg *serverOptionConfig) {
+		cfg.sidecarRuntime = info
+	}
+}
+
 // Server represents the main API server.
 // It encapsulates the Gin engine, HTTP server, handlers, and configuration.
 type Server struct {
@@ -163,6 +171,9 @@ type Server struct {
 
 	// currentPath is the absolute path to the current working directory.
 	currentPath string
+
+	// sidecarRuntime holds runtime metadata for the /statusz endpoint.
+	sidecarRuntime SidecarRuntimeInfo
 
 	// wsRoutes tracks registered websocket upgrade paths.
 	wsRouteMu     sync.Mutex
@@ -264,6 +275,7 @@ func NewServer(cfg *config.Config, authManager *auth.Manager, accessManager *sdk
 		loggerToggle:        toggle,
 		configFilePath:      configFilePath,
 		currentPath:         wd,
+		sidecarRuntime:      optionState.sidecarRuntime,
 		envManagementSecret: envManagementSecret,
 		wsRoutes:            make(map[string]struct{}),
 	}
@@ -370,6 +382,8 @@ func (s *Server) setupRoutes() {
 	}
 	s.engine.GET("/healthz", healthzHandler)
 	s.engine.HEAD("/healthz", healthzHandler)
+	s.engine.GET("/statusz", s.sidecarStatusHandler)
+	s.engine.HEAD("/statusz", s.sidecarStatusHandler)
 
 	s.engine.GET("/management.html", s.serveManagementControlPanel)
 	openaiHandlers := openai.NewOpenAIAPIHandler(s.handlers)

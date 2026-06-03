@@ -154,6 +154,12 @@ func (b *Builder) WithLocalManagementPassword(password string) *Builder {
 	return b
 }
 
+// WithSidecarRuntimeInfo configures safe runtime metadata exposed by sidecar status endpoints.
+func (b *Builder) WithSidecarRuntimeInfo(info api.SidecarRuntimeInfo) *Builder {
+	b.serverOptions = append(b.serverOptions, api.WithSidecarRuntimeInfo(info))
+	return b
+}
+
 // WithPostAuthHook registers a hook to be called after an Auth record is created
 // but before it is persisted to storage.
 func (b *Builder) WithPostAuthHook(hook coreauth.PostAuthHook) *Builder {
