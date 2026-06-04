@@ -51,3 +51,9 @@ cargo check
 cd ..
 npm run tauri dev
 ```
+
+## Native sidecar manager
+
+The Tauri backend owns the local `cli_LH` child process lifecycle. It persists launch settings under the app config directory, launches the configured binary with `--config <path>` and optional `--local-model`, streams stdout/stderr to frontend events, and exposes tray actions for show/start/stop/restart/quit.
+
+The React frontend still treats HTTP readiness as a probe concern by checking `/healthz` and `/statusz` on the configured base URL. The native process phase can therefore be `starting` while the HTTP probe is still waiting for the Go service to report ready.

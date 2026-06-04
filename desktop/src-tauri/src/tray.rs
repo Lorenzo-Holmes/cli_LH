@@ -1,4 +1,4 @@
-use crate::sidecar::{get_settings, restart_sidecar, start_sidecar, stop_sidecar, SidecarManager};
+use crate::sidecar::{get_settings, SidecarManager};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -34,22 +34,22 @@ pub fn setup_tray(app: &mut App) -> tauri::Result<()> {
             "start" => {
                 let _ = get_settings(app.clone()).and_then(|settings| {
                     let manager = app.state::<SidecarManager>();
-                    start_sidecar(app.clone(), manager, settings).map(|_| ())
+                    manager.start(app, settings).map(|_| ())
                 });
             }
             "stop" => {
                 let manager = app.state::<SidecarManager>();
-                let _ = stop_sidecar(app.clone(), manager);
+                let _ = manager.stop(app);
             }
             "restart" => {
                 let _ = get_settings(app.clone()).and_then(|settings| {
                     let manager = app.state::<SidecarManager>();
-                    restart_sidecar(app.clone(), manager, settings).map(|_| ())
+                    manager.restart(app, settings).map(|_| ())
                 });
             }
             "quit" => {
                 let manager = app.state::<SidecarManager>();
-                let _ = stop_sidecar(app.clone(), manager);
+                let _ = manager.stop(app);
                 app.exit(0);
             }
             action => {

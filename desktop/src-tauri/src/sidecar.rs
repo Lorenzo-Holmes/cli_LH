@@ -97,6 +97,106 @@ impl SidecarManager {
         };
         let _ = app.emit(event, line);
     }
+
+    pub fn start(&self, app: &AppHandle, settings: DesktopSettings) -> Result<SidecarStateSnapshot, String> {
+        let settings = normalize_settings(settings);
+        if settings.binary_path.is_empty() {
+            return Err("cli_LH binary path is required".to_string());
+        }
+        if settings.config_path.is_empty() {
+            return Err("config.yaml path is required".to_string());
+        }
+
+        {
+            let child_guard = self.child.lock().map_err(|_| "child lock poisoned".to_string())?;
+            if child_guard.is_some() {
+                return self.current_state();
+            }
+        }
+
+        self.set_state(app, SidecarStateSnapshot {
+            phase: "starting".to_string(),
+            message: Some("launching cli_LH".to_string()),
+            started_at: Some(now_string()),
+            ..SidecarStateSnapshot::default()
+        })?;
+
+        let mut command = Command::new(&settings.binary_path);
+        command.arg("--config").arg(&settings.config_path);
+        if settings.local_model {
+            command.arg("--local-model");
+        }
+        command.stdout(Stdio::piped()).stderr(Stdio::piped()).stdin(Stdio::null());
+
+        let mut child = command.spawn().map_err(|err| {
+            let message = format!("start sidecar: {err}");
+            let _ = self.set_state(app, SidecarStateSnapshot {
+                phase: "error".to_string(),
+                pid: None,
+                message: Some(message.clone()),
+                started_at: None,
+                stopped_at: Some(now_string()),
+            });
+            message
+        })?;
+        let pid = child.id();
+
+        if let Some(stdout) = child.stdout.take() {
+            let app_clone = app.clone();
+            std::thread::spawn(move || {
+                for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+                    SidecarManager::emit_log(&app_clone, "stdout", line);
+                }
+            });
+        }
+        if let Some(stderr) = child.stderr.take() {
+            let app_clone = app.clone();
+            std::thread::spawn(move || {
+                for line in BufReader::new(stderr).lines().map_while(Result::ok) {
+                    SidecarManager::emit_log(&app_clone, "stderr", line);
+                }
+            });
+        }
+
+        let mut child_guard = self.child.lock().map_err(|_| "child lock poisoned".to_string())?;
+        *child_guard = Some(child);
+
+        self.set_state(app, SidecarStateSnapshot {
+            phase: "starting".to_string(),
+            pid: Some(pid),
+            message: Some("process started; waiting for HTTP readiness".to_string()),
+            started_at: Some(now_string()),
+            stopped_at: None,
+        })
+    }
+
+    pub fn stop(&self, app: &AppHandle) -> Result<SidecarStateSnapshot, String> {
+        let current = self.current_state()?;
+        self.set_state(app, SidecarStateSnapshot {
+            phase: "stopping".to_string(),
+            message: Some("stopping sidecar".to_string()),
+            ..current
+        })?;
+
+        let mut child_guard = self.child.lock().map_err(|_| "child lock poisoned".to_string())?;
+        if let Some(mut child) = child_guard.take() {
+            child.kill().map_err(|err| format!("stop sidecar: {err}"))?;
+            let _ = child.wait();
+        }
+
+        self.set_state(app, SidecarStateSnapshot {
+            phase: "stopped".to_string(),
+            pid: None,
+            message: Some("sidecar stopped".to_string()),
+            started_at: None,
+            stopped_at: Some(now_string()),
+        })
+    }
+
+    pub fn restart(&self, app: &AppHandle, settings: DesktopSettings) -> Result<SidecarStateSnapshot, String> {
+        let _ = self.stop(app);
+        self.start(app, settings)
+    }
 }
 
 #[tauri::command]
@@ -128,95 +228,17 @@ pub fn save_settings(app: AppHandle, settings: DesktopSettings) -> Result<Deskto
 
 #[tauri::command]
 pub fn start_sidecar(app: AppHandle, manager: State<'_, SidecarManager>, settings: DesktopSettings) -> Result<SidecarStateSnapshot, String> {
-    let settings = normalize_settings(settings);
-    if settings.binary_path.is_empty() {
-        return Err("cli_LH binary path is required".to_string());
-    }
-    if settings.config_path.is_empty() {
-        return Err("config.yaml path is required".to_string());
-    }
-
-    {
-        let child_guard = manager.child.lock().map_err(|_| "child lock poisoned".to_string())?;
-        if child_guard.is_some() {
-            return manager.current_state();
-        }
-    }
-
-    manager.set_state(&app, SidecarStateSnapshot {
-        phase: "starting".to_string(),
-        message: Some("launching cli_LH".to_string()),
-        started_at: Some(now_string()),
-        ..SidecarStateSnapshot::default()
-    })?;
-
-    let mut command = Command::new(&settings.binary_path);
-    command.arg("--config").arg(&settings.config_path);
-    if settings.local_model {
-        command.arg("--local-model");
-    }
-    command.stdout(Stdio::piped()).stderr(Stdio::piped()).stdin(Stdio::null());
-
-    let mut child = command.spawn().map_err(|err| format!("start sidecar: {err}"))?;
-    let pid = child.id();
-
-    if let Some(stdout) = child.stdout.take() {
-        let app_clone = app.clone();
-        std::thread::spawn(move || {
-            for line in BufReader::new(stdout).lines().map_while(Result::ok) {
-                SidecarManager::emit_log(&app_clone, "stdout", line);
-            }
-        });
-    }
-    if let Some(stderr) = child.stderr.take() {
-        let app_clone = app.clone();
-        std::thread::spawn(move || {
-            for line in BufReader::new(stderr).lines().map_while(Result::ok) {
-                SidecarManager::emit_log(&app_clone, "stderr", line);
-            }
-        });
-    }
-
-    let mut child_guard = manager.child.lock().map_err(|_| "child lock poisoned".to_string())?;
-    *child_guard = Some(child);
-
-    manager.set_state(&app, SidecarStateSnapshot {
-        phase: "starting".to_string(),
-        pid: Some(pid),
-        message: Some("process started; waiting for HTTP readiness".to_string()),
-        started_at: Some(now_string()),
-        stopped_at: None,
-    })
+    manager.start(&app, settings)
 }
 
 #[tauri::command]
 pub fn stop_sidecar(app: AppHandle, manager: State<'_, SidecarManager>) -> Result<SidecarStateSnapshot, String> {
-    let current = manager.current_state()?;
-    manager.set_state(&app, SidecarStateSnapshot {
-        phase: "stopping".to_string(),
-        message: Some("stopping sidecar".to_string()),
-        ..current
-    })?;
-
-    let mut child_guard = manager.child.lock().map_err(|_| "child lock poisoned".to_string())?;
-    if let Some(mut child) = child_guard.take() {
-        child.kill().map_err(|err| format!("stop sidecar: {err}"))?;
-        let _ = child.wait();
-    }
-
-    manager.set_state(&app, SidecarStateSnapshot {
-        phase: "stopped".to_string(),
-        pid: None,
-        message: Some("sidecar stopped".to_string()),
-        started_at: None,
-        stopped_at: Some(now_string()),
-    })
+    manager.stop(&app)
 }
 
 #[tauri::command]
 pub fn restart_sidecar(app: AppHandle, manager: State<'_, SidecarManager>, settings: DesktopSettings) -> Result<SidecarStateSnapshot, String> {
-    let _ = stop_sidecar(app.clone(), manager.clone());
-    start_sidecar(app, manager, settings)
+    manager.restart(&app, settings)
 }
 
 #[tauri::command]
