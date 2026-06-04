@@ -965,8 +965,25 @@ func setHeaderCasePreserved(headers http.Header, key string, value string) {
 	if key == "" || value == "" {
 		return
 	}
-	deleteHeaderCaseInsensitive(headers, key)
-	headers[key] = []string{value}
+	targetKey := http.CanonicalHeaderKey(key)
+	if _, ok := headers[targetKey]; !ok {
+		targetKey = key
+	}
+	for existingKey := range headers {
+		if existingKey == targetKey {
+			break
+		}
+		if strings.EqualFold(existingKey, key) && existingKey == http.CanonicalHeaderKey(existingKey) {
+			targetKey = existingKey
+			break
+		}
+	}
+	for existingKey := range headers {
+		if strings.EqualFold(existingKey, key) && existingKey != targetKey {
+			delete(headers, existingKey)
+		}
+	}
+	headers[targetKey] = []string{value}
 }
 
 func headerValueCaseInsensitive(headers http.Header, key string) string {

@@ -225,6 +225,25 @@ func TestApplyCodexWebsocketHeadersPassesThroughClientIdentityHeaders(t *testing
 	}
 }
 
+func TestSetHeaderCasePreservedKeepsExistingHeaderKey(t *testing.T) {
+	headers := http.Header{
+		"Session_id": []string{"old-session"},
+		"session_id": []string{"duplicate-session"},
+	}
+
+	setHeaderCasePreserved(headers, "session_id", "new-session")
+
+	if got := headers.Get("Session_id"); got != "new-session" {
+		t.Fatalf("Session_id = %q, want new-session", got)
+	}
+	if _, ok := headers["Session_id"]; !ok {
+		t.Fatalf("expected Session_id key to be preserved, got %#v", headers)
+	}
+	if _, ok := headers["session_id"]; ok {
+		t.Fatalf("expected duplicate session_id key to be removed, got %#v", headers)
+	}
+}
+
 func TestApplyCodexWebsocketHeadersUsesConfigDefaultsForOAuth(t *testing.T) {
 	cfg := &config.Config{
 		CodexHeaderDefaults: config.CodexHeaderDefaults{
