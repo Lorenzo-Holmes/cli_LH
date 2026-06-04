@@ -1,35 +1,51 @@
+import { FolderOpen, Wand2 } from "lucide-react";
 import type { DesktopSettings } from "../lib/storage";
 
 export function ConfigPanel({
   settings,
   onChange,
   onSave,
+  onSelectBinary,
+  onSelectConfig,
+  onDiscover,
 }: {
   settings: DesktopSettings;
   onChange: (settings: DesktopSettings) => void;
   onSave: () => void;
+  onSelectBinary: () => void;
+  onSelectConfig: () => void;
+  onDiscover: () => void;
 }) {
   return (
     <section className="panel" id="settings">
       <div className="panel-heading">
         <span>Launch Profile</span>
-        <button onClick={onSave}>Save</button>
+        <div className="panel-actions">
+          <button onClick={onDiscover}><Wand2 size={15} /> Auto-detect</button>
+          <button onClick={onSave}>Save</button>
+        </div>
       </div>
       <label className="field">
         <span>cli_LH binary</span>
-        <input
-          value={settings.binaryPath}
-          placeholder="C:\\path\\to\\cli_LH.exe"
-          onChange={(event) => onChange({ ...settings, binaryPath: event.target.value })}
-        />
+        <div className="field-row">
+          <input
+            value={settings.binaryPath}
+            placeholder="C:\\path\\to\\cli_LH.exe"
+            onChange={(event) => onChange({ ...settings, binaryPath: event.target.value })}
+          />
+          <button type="button" onClick={onSelectBinary}><FolderOpen size={15} /> Browse</button>
+        </div>
       </label>
       <label className="field">
         <span>config.yaml</span>
-        <input
-          value={settings.configPath}
-          placeholder="C:\\path\\to\\config.yaml"
-          onChange={(event) => onChange({ ...settings, configPath: event.target.value })}
-        />
+        <div className="field-row">
+          <input
+            value={settings.configPath}
+            placeholder="C:\\path\\to\\config.yaml"
+            onChange={(event) => onChange({ ...settings, configPath: event.target.value })}
+          />
+          <button type="button" onClick={onSelectConfig}><FolderOpen size={15} /> Browse</button>
+        </div>
       </label>
       <label className="field">
         <span>base URL</span>

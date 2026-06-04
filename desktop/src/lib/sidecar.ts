@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { open } from "@tauri-apps/plugin-dialog";
 import { defaultSettings, type DesktopSettings } from "./storage";
 
 export type SidecarPhase = "idle" | "starting" | "ready" | "stopping" | "stopped" | "error";
@@ -69,6 +70,39 @@ export async function clearLogs(): Promise<void> {
     return;
   }
   await invoke("clear_logs");
+}
+
+export async function selectBinaryPath(): Promise<string | undefined> {
+  if (!inTauri()) {
+    return undefined;
+  }
+  const selected = await open({
+    multiple: false,
+    directory: false,
+    title: "Select cli_LH binary",
+    filters: [{ name: "Executable", extensions: ["exe"] }],
+  });
+  return typeof selected === "string" ? selected : undefined;
+}
+
+export async function selectConfigPath(): Promise<string | undefined> {
+  if (!inTauri()) {
+    return undefined;
+  }
+  const selected = await open({
+    multiple: false,
+    directory: false,
+    title: "Select config.yaml",
+    filters: [{ name: "YAML", extensions: ["yaml", "yml"] }],
+  });
+  return typeof selected === "string" ? selected : undefined;
+}
+
+export async function discoverLaunchProfile(): Promise<DesktopSettings> {
+  if (!inTauri()) {
+    return defaultSettings;
+  }
+  return invoke<DesktopSettings>("discover_launch_profile");
 }
 
 export async function subscribeSidecarEvents(handlers: {

@@ -7,6 +7,7 @@ use std::{
     sync::Mutex,
     time::{SystemTime, UNIX_EPOCH},
 };
+use crate::tray;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -77,6 +78,7 @@ impl SidecarManager {
         let mut guard = self.state.lock().map_err(|_| "state lock poisoned".to_string())?;
         *guard = state.clone();
         let _ = app.emit("sidecar://state", state.clone());
+        tray::sync_tray_state(app, &state.phase);
         Ok(state)
     }
 
@@ -246,6 +248,37 @@ pub fn clear_logs() -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+pub fn discover_launch_profile(app: AppHandle) -> Result<DesktopSettings, String> {
+    let mut settings = get_settings(app.clone()).unwrap_or_default();
+    let mut roots = Vec::new();
+
+    if let Ok(cwd) = std::env::current_dir() {
+        roots.push(cwd);
+    }
+    if let Ok(resource_dir) = app.path().resource_dir() {
+        roots.push(resource_dir);
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(parent) = exe.parent() {
+            roots.push(parent.to_path_buf());
+        }
+    }
+
+    if settings.binary_path.trim().is_empty() {
+        if let Some(binary) = find_first_existing(&roots, binary_candidates()) {
+            settings.binary_path = binary.to_string_lossy().to_string();
+        }
+    }
+    if settings.config_path.trim().is_empty() {
+        if let Some(config) = find_first_existing(&roots, &["config.yaml", "../config.yaml", "../../config.yaml"] ) {
+            settings.config_path = config.to_string_lossy().to_string();
+        }
+    }
+
+    Ok(normalize_settings(settings))
+}
+
 fn normalize_settings(mut settings: DesktopSettings) -> DesktopSettings {
     settings.binary_path = settings.binary_path.trim().to_string();
     settings.config_path = settings.config_path.trim().to_string();
@@ -259,6 +292,25 @@ fn normalize_settings(mut settings: DesktopSettings) -> DesktopSettings {
 fn settings_path(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app.path().app_config_dir().map_err(|err| format!("resolve app config dir: {err}"))?;
     Ok(dir.join("settings.json"))
+}
+
+#[cfg(windows)]
+fn binary_candidates() -> &'static [&'static str] {
+    &["cli_LH.exe", "server.exe", "bin/server.exe", "../cli_LH.exe", "../server.exe", "../bin/server.exe"]
+}
+
+#[cfg(not(windows))]
+fn binary_candidates() -> &'static [&'static str] {
+    &["cli_LH", "server", "bin/server", "../cli_LH", "../server", "../bin/server"]
+}
+
+fn find_first_existing(roots: &[PathBuf], candidates: &[&str]) -> Option<PathBuf> {
+    roots.iter().flat_map(|root| candidates.iter().map(move |candidate| normalize_path(root.join(candidate))))
+        .find(|path| path.is_file())
+}
+
+fn normalize_path(path: PathBuf) -> PathBuf {
+    path.canonicalize().unwrap_or(path)
 }
 
 fn now_string() -> String {

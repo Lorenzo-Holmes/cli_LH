@@ -2,8 +2,10 @@ use crate::sidecar::{get_settings, SidecarManager};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    App, Emitter, Manager,
+    App, AppHandle, Emitter, Manager,
 };
+
+const TRAY_ID: &str = "main-tray";
 
 pub fn setup_tray(app: &mut App) -> tauri::Result<()> {
     let show = MenuItem::with_id(app, "show", "Show Window", true, None::<&str>)?;
@@ -14,7 +16,9 @@ pub fn setup_tray(app: &mut App) -> tauri::Result<()> {
     let menu = Menu::with_items(app, &[&show, &start, &stop, &restart, &quit])?;
 
     TrayIconBuilder::new()
+        .id(TRAY_ID)
         .menu(&menu)
+        .tooltip("cli_LH Cockpit: idle")
         .show_menu_on_left_click(false)
         .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = event {
@@ -58,5 +62,13 @@ pub fn setup_tray(app: &mut App) -> tauri::Result<()> {
         })
         .build(app)?;
 
+    sync_tray_state(app.handle(), "idle");
+
     Ok(())
+}
+
+pub fn sync_tray_state(app: &AppHandle, phase: &str) {
+    if let Some(tray) = app.tray_by_id(TRAY_ID) {
+        let _ = tray.set_tooltip(Some(&format!("cli_LH Cockpit: {phase}")));
+    }
 }

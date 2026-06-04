@@ -26,44 +26,43 @@
 
 ### Task 1: Add Verification Script and Docs
 
-- [ ] Add `tauri:check` to `desktop/package.json` as `tauri info && cd src-tauri && cargo check`.
-- [ ] Update `desktop/README.md` with Windows Rust installation command and the `npm run tauri:check` workflow.
-- [ ] Run `npm --prefix desktop run typecheck`.
+- [x] Add `tauri:check` to `desktop/package.json` as `tauri info && cargo check --manifest-path src-tauri/Cargo.toml`.
+- [x] Update `desktop/README.md` with Windows Rust installation command and the `npm run tauri:check` workflow.
+- [x] Run `npm --prefix desktop run typecheck`.
 - [ ] Commit docs/script changes.
 
 ### Task 2: Add Native Profile Helpers
 
-- [ ] Add Tauri commands in `desktop/src-tauri/src/sidecar.rs`:
-  - `select_binary_path(app)` opens a file picker for executables.
-  - `select_config_path(app)` opens a file picker for YAML config files.
+- [x] Add native/default profile helper in `desktop/src-tauri/src/sidecar.rs`:
+  - File pickers are implemented through the frontend Tauri dialog plugin.
   - `discover_launch_profile(app)` checks likely repository-local paths for binary/config defaults.
-- [ ] Register the commands in `desktop/src-tauri/src/lib.rs`.
-- [ ] Add TypeScript wrappers in `desktop/src/lib/sidecar.ts` with browser fallbacks.
-- [ ] Run frontend typecheck.
+- [x] Register the command in `desktop/src-tauri/src/lib.rs`.
+- [x] Add TypeScript wrappers in `desktop/src/lib/sidecar.ts` with browser fallbacks.
+- [x] Run frontend typecheck.
 - [ ] Commit native helper changes.
 
 ### Task 3: Add Config Panel Controls
 
-- [ ] Add Browse buttons beside binary/config fields in `ConfigPanel.tsx`.
-- [ ] Add Auto-detect button to populate detected paths without overwriting unrelated settings.
-- [ ] Wire actions in `App.tsx`.
-- [ ] Update CSS for field/action layout.
-- [ ] Run frontend build.
+- [x] Add Browse buttons beside binary/config fields in `ConfigPanel.tsx`.
+- [x] Add Auto-detect button to populate detected paths without overwriting unrelated settings.
+- [x] Wire actions in `App.tsx`.
+- [x] Update CSS for field/action layout.
+- [x] Run frontend build.
 - [ ] Commit UI changes.
 
 ### Task 4: Synchronize Tray State
 
-- [ ] Update `tray.rs` to keep menu items and tooltip in a managed `TrayController`.
-- [ ] Call tray synchronization whenever `SidecarManager` changes state.
-- [ ] Keep show/start/stop/restart/quit actions unchanged.
-- [ ] Run available verification.
+- [x] Update `tray.rs` with a stable tray id and status tooltip.
+- [x] Call tray synchronization whenever `SidecarManager` changes state.
+- [x] Keep show/start/stop/restart/quit actions unchanged.
+- [x] Run available verification.
 - [ ] Commit tray synchronization.
 
 ### Task 5: Final Verification and Push
 
-- [ ] Run `npm --prefix desktop run typecheck`.
-- [ ] Run `npm --prefix desktop run build`.
-- [ ] Run `go test ./...`.
-- [ ] Run `go build -o test-output ./cmd/server`, then remove `test-output`.
-- [ ] Check `rustc --version` and `cargo --version`; run `npm --prefix desktop run tauri:check` only if available.
+- [x] Run `npm --prefix desktop run typecheck`.
+- [x] Run `npm --prefix desktop run build`.
+- [x] Run `go test ./...`.
+- [x] Run `go build -o test-output ./cmd/server`, then remove `test-output`.
+- [x] Check `rustc --version` and `cargo --version`; run `npm --prefix desktop run tauri:check` only if available.
 - [ ] Push `main`.

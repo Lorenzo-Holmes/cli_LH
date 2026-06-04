@@ -4,7 +4,7 @@ import { ControlPanel } from "./components/ControlPanel";
 import { LogPanel } from "./components/LogPanel";
 import { Sidebar } from "./components/Sidebar";
 import { StatusPanel } from "./components/StatusPanel";
-import { clearLogs, getSettings, getSidecarState, restartSidecar, saveSettings, startSidecar, stopSidecar, subscribeSidecarEvents, type LogLine, type SidecarState } from "./lib/sidecar";
+import { clearLogs, discoverLaunchProfile, getSettings, getSidecarState, restartSidecar, saveSettings, selectBinaryPath, selectConfigPath, startSidecar, stopSidecar, subscribeSidecarEvents, type LogLine, type SidecarState } from "./lib/sidecar";
 import { probeSidecar, type ProbeResult } from "./lib/status";
 import { defaultSettings, normalizeSettings, type DesktopSettings } from "./lib/storage";
 
@@ -70,6 +70,31 @@ export default function App() {
     }
   }
 
+  async function chooseBinaryPath() {
+    const selected = await selectBinaryPath();
+    if (selected) {
+      setSettings((current) => normalizeSettings({ ...current, binaryPath: selected }));
+    }
+  }
+
+  async function chooseConfigPath() {
+    const selected = await selectConfigPath();
+    if (selected) {
+      setSettings((current) => normalizeSettings({ ...current, configPath: selected }));
+    }
+  }
+
+  async function autoDiscoverProfile() {
+    try {
+      const discovered = await discoverLaunchProfile();
+      setSettings((current) => normalizeSettings({ ...current, ...discovered }));
+      pushLog({ source: "system", message: "Launch profile auto-detection completed", timestamp: new Date().toISOString() });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      pushLog({ source: "system", message, timestamp: new Date().toISOString() });
+    }
+  }
+
   return (
     <div className="app-shell">
       <Sidebar phase={state.phase} />
@@ -91,11 +116,18 @@ export default function App() {
             onRestart={() => void runAction(() => restartSidecar(normalizedSettings))}
           />
           <StatusPanel probe={probe} />
-          <ConfigPanel settings={settings} onChange={setSettings} onSave={() => void runAction(async () => {
-            const saved = await saveSettings(normalizedSettings);
-            setSettings(saved);
-            return { ...state, message: "Settings saved" };
-          })} />
+          <ConfigPanel
+            settings={settings}
+            onChange={setSettings}
+            onSelectBinary={() => void chooseBinaryPath()}
+            onSelectConfig={() => void chooseConfigPath()}
+            onDiscover={() => void autoDiscoverProfile()}
+            onSave={() => void runAction(async () => {
+              const saved = await saveSettings(normalizedSettings);
+              setSettings(saved);
+              return { ...state, message: "Settings saved" };
+            })}
+          />
           <LogPanel logs={logs} onClear={() => {
             setLogs([]);
             void clearLogs();

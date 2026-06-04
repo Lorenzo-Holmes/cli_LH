@@ -21,11 +21,14 @@ npm run build
 Full Tauri verification additionally requires Rust and Cargo on PATH:
 
 ```text
+npm run tauri:check
 npm run tauri dev
 npm run tauri build
 ```
 
 If `rustc` and `cargo` are not available, the frontend build can still be verified.
+
+On Windows, install Rust with `winget install Rustlang.Rustup`, then restart the terminal and run `rustc --version` and `cargo --version` before running Tauri checks.
 
 ## Verification
 
@@ -46,9 +49,7 @@ go build -o test-output ./cmd/server
 Full Tauri verification requires Rust/Cargo:
 
 ```text
-cd src-tauri
-cargo check
-cd ..
+npm run tauri:check
 npm run tauri dev
 ```
 
