@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add practical polish to the `desktop/` reference shell: Tauri verification scripts/docs, file chooser controls, launch profile auto-discovery, and tray state synchronization.
+**Goal:** Add practical polish to the `desktop/` reference shell: Tauri verification scripts/docs, file chooser controls, launch profile auto-discovery, tray state synchronization, and CI coverage for native Tauri verification.
 
 **Architecture:** Keep all changes isolated under `desktop/`. React owns form interactions and invokes Tauri commands. Rust owns native filesystem discovery, file dialogs, process lifecycle, and tray state updates.
 
@@ -20,7 +20,8 @@
 - Modify `desktop/src/styles.css`: style grouped field actions.
 - Modify `desktop/src-tauri/src/sidecar.rs`: add native commands for file dialogs and default launch profile discovery.
 - Modify `desktop/src-tauri/src/lib.rs`: register new commands.
-- Modify `desktop/src-tauri/src/tray.rs`: keep tray menu enabled/disabled state and tooltip synchronized with sidecar phase.
+- Modify `desktop/src-tauri/src/tray.rs`: keep tray status tooltip synchronized with sidecar phase.
+- Add `.github/workflows/desktop-check.yml`: run desktop frontend and Tauri checks in CI with Rust/Cargo available.
 
 ---
 
@@ -29,7 +30,7 @@
 - [x] Add `tauri:check` to `desktop/package.json` as `tauri info && cargo check --manifest-path src-tauri/Cargo.toml`.
 - [x] Update `desktop/README.md` with Windows Rust installation command and the `npm run tauri:check` workflow.
 - [x] Run `npm --prefix desktop run typecheck`.
-- [ ] Commit docs/script changes.
+- [x] Commit docs/script changes.
 
 ### Task 2: Add Native Profile Helpers
 
@@ -39,7 +40,7 @@
 - [x] Register the command in `desktop/src-tauri/src/lib.rs`.
 - [x] Add TypeScript wrappers in `desktop/src/lib/sidecar.ts` with browser fallbacks.
 - [x] Run frontend typecheck.
-- [ ] Commit native helper changes.
+- [x] Commit native helper changes.
 
 ### Task 3: Add Config Panel Controls
 
@@ -48,7 +49,7 @@
 - [x] Wire actions in `App.tsx`.
 - [x] Update CSS for field/action layout.
 - [x] Run frontend build.
-- [ ] Commit UI changes.
+- [x] Commit UI changes.
 
 ### Task 4: Synchronize Tray State
 
@@ -56,7 +57,16 @@
 - [x] Call tray synchronization whenever `SidecarManager` changes state.
 - [x] Keep show/start/stop/restart/quit actions unchanged.
 - [x] Run available verification.
-- [ ] Commit tray synchronization.
+- [x] Commit tray synchronization.
+
+### Task 4.5: Add Desktop CI Coverage
+
+- [x] Add `.github/workflows/desktop-check.yml` for PR and `main` pushes touching `desktop/**`.
+- [x] Install Node.js 22, Rust stable, and Linux Tauri system dependencies in CI.
+- [x] Run `npm ci`, `npm run typecheck`, `npm run build`, and `npm run tauri:check` from `desktop/`.
+- [x] Add `@tauri-apps/cli` as a local dev dependency so CI uses the project-pinned Tauri CLI.
+- [x] Document the workflow in `desktop/README.md`.
+- [x] Commit and push CI changes.
 
 ### Task 5: Final Verification and Push
 
@@ -65,4 +75,4 @@
 - [x] Run `go test ./...`.
 - [x] Run `go build -o test-output ./cmd/server`, then remove `test-output`.
 - [x] Check `rustc --version` and `cargo --version`; run `npm --prefix desktop run tauri:check` only if available.
-- [ ] Push `main`.
+- [x] Push `main`.
