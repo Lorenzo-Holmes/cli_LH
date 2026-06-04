@@ -8,9 +8,9 @@ package geminiCLI
 import (
 	"fmt"
 
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/signature"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/translator/gemini/common"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/signature"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/translator/gemini/common"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/util"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )

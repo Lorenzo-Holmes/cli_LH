@@ -10,9 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/auth/codex"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/runtime/geminicli"
-	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/auth/codex"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/runtime/geminicli"
+	coreauth "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/auth"
+	log "github.com/sirupsen/logrus"
 )
 
 // FileSynthesizer generates Auth entries from OAuth JSON files.
@@ -28,14 +29,22 @@ func NewFileSynthesizer() *FileSynthesizer {
 func (s *FileSynthesizer) Synthesize(ctx *SynthesisContext) ([]*coreauth.Auth, error) {
 	out := make([]*coreauth.Auth, 0, 16)
 	if ctx == nil || ctx.AuthDir == "" {
+		if ctx == nil {
+			log.Debugf("FileSynthesizer.Synthesize: ctx is nil")
+		} else {
+			log.Debugf("FileSynthesizer.Synthesize: AuthDir is empty")
+		}
 		return out, nil
 	}
+	log.Debugf("FileSynthesizer.Synthesize: reading AuthDir=%q", ctx.AuthDir)
 
 	entries, err := os.ReadDir(ctx.AuthDir)
 	if err != nil {
+		log.Debugf("FileSynthesizer.Synthesize: ReadDir error: %v", err)
 		// Not an error if directory doesn't exist
 		return out, nil
 	}
+	log.Debugf("FileSynthesizer.Synthesize: ReadDir returned %d entries", len(entries))
 
 	for _, e := range entries {
 		if e.IsDir() {
@@ -43,17 +52,21 @@ func (s *FileSynthesizer) Synthesize(ctx *SynthesisContext) ([]*coreauth.Auth, e
 		}
 		name := e.Name()
 		if !strings.HasSuffix(strings.ToLower(name), ".json") {
+			log.Debugf("FileSynthesizer: skipping non-JSON file: %s", name)
 			continue
 		}
 		full := filepath.Join(ctx.AuthDir, name)
 		data, errRead := os.ReadFile(full)
 		if errRead != nil || len(data) == 0 {
+			log.Debugf("FileSynthesizer: skipping unreadable/empty file: %s (err=%v len=%d)", name, errRead, len(data))
 			continue
 		}
 		auths := synthesizeFileAuths(ctx, full, data)
 		if len(auths) == 0 {
+			log.Debugf("FileSynthesizer: synthesizeFileAuths returned 0 auths for %s (data=%d bytes)", name, len(data))
 			continue
 		}
+		log.Debugf("FileSynthesizer: synthesized %d auths from %s", len(auths), name)
 		out = append(out, auths...)
 	}
 	return out, nil
@@ -67,18 +80,26 @@ func SynthesizeAuthFile(ctx *SynthesisContext, fullPath string, data []byte) []*
 
 func synthesizeFileAuths(ctx *SynthesisContext, fullPath string, data []byte) []*coreauth.Auth {
 	if ctx == nil || len(data) == 0 {
+		log.Debugf("synthesizeFileAuths: ctx nil=%v or empty data len=%d for %s", ctx == nil, len(data), fullPath)
 		return nil
+	}
+	// Strip UTF-8 BOM if present
+	if len(data) >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF {
+		data = data[3:]
 	}
 	now := ctx.Now
 	cfg := ctx.Config
 	var metadata map[string]any
 	if errUnmarshal := json.Unmarshal(data, &metadata); errUnmarshal != nil {
+		log.Debugf("synthesizeFileAuths: JSON unmarshal failed for %s: %v", fullPath, errUnmarshal)
 		return nil
 	}
 	t, _ := metadata["type"].(string)
 	if t == "" {
+		log.Debugf("synthesizeFileAuths: no type field in %s, metadata keys: %v", fullPath, func() []string { keys := make([]string, 0, len(metadata)); for k := range metadata { keys = append(keys, k) }; return keys }())
 		return nil
 	}
+	log.Debugf("synthesizeFileAuths: processing %s type=%s", fullPath, t)
 	provider := strings.ToLower(t)
 	if provider == "gemini" {
 		provider = "gemini-cli"

@@ -9,9 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/watcher/synthesizer"
-	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/config"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/watcher/synthesizer"
+	coreauth "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/auth"
+	log "github.com/sirupsen/logrus"
 )
 
 var snapshotCoreAuthsFunc = snapshotCoreAuths
@@ -20,6 +21,7 @@ func (w *Watcher) setAuthUpdateQueue(queue chan<- AuthUpdate) {
 	w.clientsMutex.Lock()
 	defer w.clientsMutex.Unlock()
 	w.authQueue = queue
+	log.Debugf("setAuthUpdateQueue: queue=%v", queue != nil)
 	if w.dispatchCond == nil {
 		w.dispatchCond = sync.NewCond(&w.dispatchMu)
 	}
@@ -93,6 +95,7 @@ func (w *Watcher) refreshAuthState(force bool) {
 	}
 	updates := w.prepareAuthUpdatesLocked(auths, force)
 	w.clientsMutex.Unlock()
+	log.Debugf("refreshAuthState: force=%v auths=%d updates=%d", force, len(auths), len(updates))
 	w.dispatchAuthUpdates(updates)
 }
 
@@ -138,12 +141,15 @@ func (w *Watcher) prepareAuthUpdatesLocked(auths []*coreauth.Auth, force bool) [
 
 func (w *Watcher) dispatchAuthUpdates(updates []AuthUpdate) {
 	if len(updates) == 0 {
+		log.Debugf("dispatchAuthUpdates: no updates to dispatch")
 		return
 	}
 	queue := w.getAuthQueue()
 	if queue == nil {
+		log.Debugf("dispatchAuthUpdates: queue is nil, dropping %d updates", len(updates))
 		return
 	}
+	log.Debugf("dispatchAuthUpdates: dispatching %d updates to queue", len(updates))
 	baseTS := time.Now().UnixNano()
 	w.dispatchMu.Lock()
 	if w.pendingUpdates == nil {
@@ -170,13 +176,17 @@ func (w *Watcher) authUpdateKey(update AuthUpdate, ts int64) string {
 }
 
 func (w *Watcher) dispatchLoop(ctx context.Context) {
+	log.Debugf("dispatchLoop: starting")
 	for {
 		batch, ok := w.nextPendingBatch(ctx)
 		if !ok {
+			log.Debugf("dispatchLoop: stopping (context cancelled)")
 			return
 		}
+		log.Debugf("dispatchLoop: processing batch of %d updates", len(batch))
 		queue := w.getAuthQueue()
 		if queue == nil {
+			log.Debugf("dispatchLoop: queue is nil, sleeping")
 			if ctx.Err() != nil {
 				return
 			}
@@ -186,6 +196,7 @@ func (w *Watcher) dispatchLoop(ctx context.Context) {
 		for _, update := range batch {
 			select {
 			case queue <- update:
+				log.Debugf("dispatchLoop: sent update to queue: action=%v id=%s", update.Action, update.ID)
 			case <-ctx.Done():
 				return
 			}
@@ -256,6 +267,7 @@ func normalizeAuth(a *coreauth.Auth) *coreauth.Auth {
 }
 
 func snapshotCoreAuths(cfg *config.Config, authDir string) []*coreauth.Auth {
+	log.Debugf("snapshotCoreAuths: authDir=%q cfg=%v", authDir, cfg != nil)
 	ctx := &synthesizer.SynthesisContext{
 		Config:      cfg,
 		AuthDir:     authDir,
@@ -268,12 +280,15 @@ func snapshotCoreAuths(cfg *config.Config, authDir string) []*coreauth.Auth {
 	configSynth := synthesizer.NewConfigSynthesizer()
 	if auths, err := configSynth.Synthesize(ctx); err == nil {
 		out = append(out, auths...)
+		log.Debugf("snapshotCoreAuths: ConfigSynthesizer returned %d auths", len(auths))
 	}
 
 	fileSynth := synthesizer.NewFileSynthesizer()
 	if auths, err := fileSynth.Synthesize(ctx); err == nil {
 		out = append(out, auths...)
+		log.Debugf("snapshotCoreAuths: FileSynthesizer returned %d auths", len(auths))
 	}
 
+	log.Debugf("snapshotCoreAuths: total %d auths", len(out))
 	return out
 }

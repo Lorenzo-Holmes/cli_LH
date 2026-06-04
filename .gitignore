@@ -1,9 +1,11 @@
 # Binaries
-cli-proxy-api
+cli_LH
 *.exe
 
 # Configuration
 config.yaml
+config.*.yaml
+!config.example.yaml
 .env
 
 # Generated content
@@ -51,3 +53,6 @@ _bmad-output/*
 .DS_Store
 ._*
 .gocache/
+.cliproxy-switch/
+.learnings/
+.superpowers/

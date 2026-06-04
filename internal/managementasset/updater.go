@@ -17,18 +17,18 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
-	sdkconfig "github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/config"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/util"
+	sdkconfig "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/config"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/singleflight"
 )
 
 const (
-	defaultManagementReleaseURL  = "https://api.github.com/repos/router-for-me/Cli-Proxy-API-Management-Center/releases/latest"
+	defaultManagementReleaseURL  = "https://api.github.com/repos/router-for-me/cli_LH-Management-Center/releases/latest"
 	defaultManagementFallbackURL = "https://cpamc.router-for.me/"
 	managementAssetName          = "management.html"
-	httpUserAgent                = "CLIProxyAPI-management-updater"
+	httpUserAgent                = "cli_LH-management-updater"
 	managementSyncMinInterval    = 30 * time.Second
 	updateCheckInterval          = 3 * time.Hour
 	maxAssetDownloadSize         = 50 << 20 // 10 MB safety limit for management asset downloads

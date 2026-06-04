@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/cache"
-	cliproxyauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
-	sdktranslator "github.com/router-for-me/CLIProxyAPI/v7/sdk/translator"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/cache"
+	cliproxyauth "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/auth"
+	sdktranslator "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/translator"
 	log "github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/tidwall/gjson"

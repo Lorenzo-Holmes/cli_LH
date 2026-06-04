@@ -12,9 +12,9 @@ import (
 	"strconv"
 	"strings"
 
-	sigcompat "github.com/router-for-me/CLIProxyAPI/v7/internal/signature"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/thinking"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
+	sigcompat "github.com/Lorenzo-Holmes/cli_LH/v7/internal/signature"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/thinking"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/util"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )

@@ -8,11 +8,11 @@ package claude
 import (
 	"strings"
 
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/cache"
-	sigcompat "github.com/router-for-me/CLIProxyAPI/v7/internal/signature"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/thinking"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/translator/gemini/common"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/cache"
+	sigcompat "github.com/Lorenzo-Holmes/cli_LH/v7/internal/signature"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/thinking"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/translator/gemini/common"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"

@@ -17,22 +17,23 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	configaccess "github.com/router-for-me/CLIProxyAPI/v7/internal/access/config_access"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/buildinfo"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/cmd"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/home"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/logging"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/managementasset"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/misc"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/redisqueue"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/registry"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/store"
-	_ "github.com/router-for-me/CLIProxyAPI/v7/internal/translator"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/tui"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
-	sdkAuth "github.com/router-for-me/CLIProxyAPI/v7/sdk/auth"
-	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
+	configaccess "github.com/Lorenzo-Holmes/cli_LH/v7/internal/access/config_access"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/api"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/buildinfo"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/cmd"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/config"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/home"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/logging"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/managementasset"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/misc"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/redisqueue"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/registry"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/store"
+	_ "github.com/Lorenzo-Holmes/cli_LH/v7/internal/translator"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/tui"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/util"
+	sdkAuth "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/auth"
+	coreauth "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/auth"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -55,7 +56,7 @@ func init() {
 // It parses command-line flags, loads configuration, and starts the appropriate
 // service based on the provided flags (login, codex-login, or server mode).
 func main() {
-	fmt.Printf("CLIProxyAPI Version: %s, Commit: %s, BuiltAt: %s\n", buildinfo.Version, buildinfo.Commit, buildinfo.BuildDate)
+	fmt.Printf("cli_LH Version: %s, Commit: %s, BuiltAt: %s\n", buildinfo.Version, buildinfo.Commit, buildinfo.BuildDate)
 
 	// Command-line flags to control the application's behavior.
 	var login bool
@@ -493,7 +494,7 @@ func main() {
 		return
 	}
 
-	log.Infof("CLIProxyAPI Version: %s, Commit: %s, BuiltAt: %s", buildinfo.Version, buildinfo.Commit, buildinfo.BuildDate)
+	log.Infof("cli_LH Version: %s, Commit: %s, BuiltAt: %s", buildinfo.Version, buildinfo.Commit, buildinfo.BuildDate)
 
 	// Set the log level based on the configuration.
 	util.SetLogLevel(cfg)
@@ -525,6 +526,11 @@ func main() {
 
 	// Register built-in access providers before constructing services.
 	configaccess.Register(&cfg.SDKConfig)
+	runtimeInfo := api.SidecarRuntimeInfo{
+		TUIMode:    tuiMode,
+		Standalone: standalone,
+		LocalModel: localModel,
+	}
 
 	// Handle different command modes based on the provided flags.
 
@@ -599,7 +605,7 @@ func main() {
 					password = localMgmtPassword
 				}
 
-				cancel, done := cmd.StartServiceBackground(cfg, configFilePath, password)
+				cancel, done := cmd.StartServiceBackground(cfg, configFilePath, password, runtimeInfo)
 
 				client := tui.NewClient(cfg.Port, password)
 				ready := false
@@ -648,7 +654,7 @@ func main() {
 			} else if cfg.Home.Enabled {
 				log.Info("Home mode: remote model updates disabled")
 			}
-			cmd.StartService(cfg, configFilePath, password)
+			cmd.StartService(cfg, configFilePath, password, runtimeInfo)
 		}
 	}
 }

@@ -14,14 +14,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/interfaces"
-	requestlogging "github.com/router-for-me/CLIProxyAPI/v7/internal/logging"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/registry"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/thinking"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
-	"github.com/router-for-me/CLIProxyAPI/v7/sdk/api/handlers"
-	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
-	cliproxyexecutor "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executor"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/interfaces"
+	requestlogging "github.com/Lorenzo-Holmes/cli_LH/v7/internal/logging"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/registry"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/thinking"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/util"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/sdk/api/handlers"
+	coreauth "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/auth"
+	cliproxyexecutor "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/executor"
 	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -550,7 +550,7 @@ func normalizeResponseSubsequentRequest(rawJSON []byte, lastRequest []byte, last
 	// directly, the input already carries the canonical history. In that case,
 	// skip merging with stale lastRequest/lastResponseOutput to avoid breaking
 	// function_call / function_call_output pairings.
-	// See: https://github.com/router-for-me/CLIProxyAPI/issues/2207
+	// See: https://github.com/Lorenzo-Holmes/cli_LH/issues/2207
 	var mergedInput string
 	if allowCompactionReplayBypass && inputContainsFullTranscript(nextInput) {
 		log.Infof("responses websocket: full transcript detected, skipping stale merge (input items=%d)", len(nextInput.Array()))

@@ -8,10 +8,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
-	cliproxyauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
-	cliproxyexecutor "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executor"
-	sdktranslator "github.com/router-for-me/CLIProxyAPI/v7/sdk/translator"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/config"
+	cliproxyauth "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/auth"
+	cliproxyexecutor "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/executor"
+	sdktranslator "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/translator"
 	"github.com/tidwall/gjson"
 )
 
@@ -39,7 +39,7 @@ func TestCodexExecutorCacheHelper_OpenAIChatCompletions_StablePromptCacheKeyFrom
 		t.Fatalf("read request body: %v", errRead)
 	}
 
-	expectedKey := uuid.NewSHA1(uuid.NameSpaceOID, []byte("cli-proxy-api:codex:prompt-cache:test-api-key")).String()
+	expectedKey := uuid.NewSHA1(uuid.NameSpaceOID, []byte("cli_LH:codex:prompt-cache:test-api-key")).String()
 	gotKey := gjson.GetBytes(body, "prompt_cache_key").String()
 	if gotKey != expectedKey {
 		t.Fatalf("prompt_cache_key = %q, want %q", gotKey, expectedKey)

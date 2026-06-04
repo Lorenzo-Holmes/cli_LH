@@ -11,15 +11,15 @@ import (
 	"strings"
 	"time"
 
-	codexauth "github.com/router-for-me/CLIProxyAPI/v7/internal/auth/codex"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/misc"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/runtime/executor/helps"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/thinking"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
-	cliproxyauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
-	cliproxyexecutor "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executor"
-	sdktranslator "github.com/router-for-me/CLIProxyAPI/v7/sdk/translator"
+	codexauth "github.com/Lorenzo-Holmes/cli_LH/v7/internal/auth/codex"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/config"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/misc"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/runtime/executor/helps"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/thinking"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/util"
+	cliproxyauth "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/auth"
+	cliproxyexecutor "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/executor"
+	sdktranslator "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/translator"
 	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -915,7 +915,7 @@ func (e *CodexExecutor) cacheHelper(ctx context.Context, from sdktranslator.Form
 		}
 	} else if from == "openai" {
 		if apiKey := strings.TrimSpace(helps.APIKeyFromContext(ctx)); apiKey != "" {
-			cache.ID = uuid.NewSHA1(uuid.NameSpaceOID, []byte("cli-proxy-api:codex:prompt-cache:"+apiKey)).String()
+			cache.ID = uuid.NewSHA1(uuid.NameSpaceOID, []byte("cli_LH:codex:prompt-cache:"+apiKey)).String()
 		}
 	}
 
@@ -1058,7 +1058,7 @@ func codexIdentityConfuseEnabled(cfg *config.Config) bool {
 }
 
 func codexIdentityConfuseUUID(authID string, kind string, value string) string {
-	name := strings.Join([]string{"cli-proxy-api", "codex", "identity-confuse", kind, strings.TrimSpace(authID), strings.TrimSpace(value)}, ":")
+	name := strings.Join([]string{"cli_LH", "codex", "identity-confuse", kind, strings.TrimSpace(authID), strings.TrimSpace(value)}, ":")
 	return uuid.NewSHA1(uuid.NameSpaceOID, []byte(name)).String()
 }
 

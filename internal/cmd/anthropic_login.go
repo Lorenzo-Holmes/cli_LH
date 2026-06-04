@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/auth/claude"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
-	sdkAuth "github.com/router-for-me/CLIProxyAPI/v7/sdk/auth"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/auth/claude"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/config"
+	sdkAuth "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/auth"
 	log "github.com/sirupsen/logrus"
 )
 

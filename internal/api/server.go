@@ -23,25 +23,25 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/access"
-	managementHandlers "github.com/router-for-me/CLIProxyAPI/v7/internal/api/handlers/management"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/api/middleware"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/api/modules"
-	ampmodule "github.com/router-for-me/CLIProxyAPI/v7/internal/api/modules/amp"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/cache"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/home"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/logging"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/managementasset"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/redisqueue"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
-	sdkaccess "github.com/router-for-me/CLIProxyAPI/v7/sdk/access"
-	"github.com/router-for-me/CLIProxyAPI/v7/sdk/api/handlers"
-	"github.com/router-for-me/CLIProxyAPI/v7/sdk/api/handlers/claude"
-	"github.com/router-for-me/CLIProxyAPI/v7/sdk/api/handlers/gemini"
-	"github.com/router-for-me/CLIProxyAPI/v7/sdk/api/handlers/openai"
-	sdkAuth "github.com/router-for-me/CLIProxyAPI/v7/sdk/auth"
-	"github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/access"
+	managementHandlers "github.com/Lorenzo-Holmes/cli_LH/v7/internal/api/handlers/management"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/api/middleware"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/api/modules"
+	ampmodule "github.com/Lorenzo-Holmes/cli_LH/v7/internal/api/modules/amp"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/cache"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/config"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/home"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/logging"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/managementasset"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/redisqueue"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/util"
+	sdkaccess "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/access"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/sdk/api/handlers"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/sdk/api/handlers/claude"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/sdk/api/handlers/gemini"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/sdk/api/handlers/openai"
+	sdkAuth "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/auth"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/auth"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/http2"
 	"gopkg.in/yaml.v3"
@@ -59,6 +59,7 @@ type serverOptionConfig struct {
 	keepAliveTimeout     time.Duration
 	keepAliveOnTimeout   func()
 	postAuthHook         auth.PostAuthHook
+	sidecarRuntime       SidecarRuntimeInfo
 }
 
 // ServerOption customises HTTP server construction.
@@ -126,6 +127,13 @@ func WithPostAuthHook(hook auth.PostAuthHook) ServerOption {
 	}
 }
 
+// WithSidecarRuntimeInfo records safe runtime mode metadata for machine-readable status endpoints.
+func WithSidecarRuntimeInfo(info SidecarRuntimeInfo) ServerOption {
+	return func(cfg *serverOptionConfig) {
+		cfg.sidecarRuntime = info
+	}
+}
+
 // Server represents the main API server.
 // It encapsulates the Gin engine, HTTP server, handlers, and configuration.
 type Server struct {
@@ -163,6 +171,9 @@ type Server struct {
 
 	// currentPath is the absolute path to the current working directory.
 	currentPath string
+
+	// sidecarRuntime holds runtime metadata for the /statusz endpoint.
+	sidecarRuntime SidecarRuntimeInfo
 
 	// wsRoutes tracks registered websocket upgrade paths.
 	wsRouteMu     sync.Mutex
@@ -264,6 +275,7 @@ func NewServer(cfg *config.Config, authManager *auth.Manager, accessManager *sdk
 		loggerToggle:        toggle,
 		configFilePath:      configFilePath,
 		currentPath:         wd,
+		sidecarRuntime:      optionState.sidecarRuntime,
 		envManagementSecret: envManagementSecret,
 		wsRoutes:            make(map[string]struct{}),
 	}
@@ -370,6 +382,8 @@ func (s *Server) setupRoutes() {
 	}
 	s.engine.GET("/healthz", healthzHandler)
 	s.engine.HEAD("/healthz", healthzHandler)
+	s.engine.GET("/statusz", s.sidecarStatusHandler)
+	s.engine.HEAD("/statusz", s.sidecarStatusHandler)
 
 	s.engine.GET("/management.html", s.serveManagementControlPanel)
 	openaiHandlers := openai.NewOpenAIAPIHandler(s.handlers)

@@ -8,8 +8,8 @@ import (
 	"sync"
 
 	tls "github.com/refraction-networking/utls"
-	"github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
-	"github.com/router-for-me/CLIProxyAPI/v7/sdk/proxyutil"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/sdk/config"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/sdk/proxyutil"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/proxy"

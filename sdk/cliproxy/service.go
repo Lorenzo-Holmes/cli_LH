@@ -12,21 +12,21 @@ import (
 	"sync"
 	"time"
 
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/api"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/home"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/logging"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/redisqueue"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/registry"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/runtime/executor"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/watcher"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/watcher/diff"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/wsrelay"
-	sdkaccess "github.com/router-for-me/CLIProxyAPI/v7/sdk/access"
-	sdkAuth "github.com/router-for-me/CLIProxyAPI/v7/sdk/auth"
-	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
-	"github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/usage"
-	"github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/api"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/home"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/logging"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/redisqueue"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/registry"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/runtime/executor"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/util"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/watcher"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/watcher/diff"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/wsrelay"
+	sdkaccess "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/access"
+	sdkAuth "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/auth"
+	coreauth "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/auth"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/usage"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/sdk/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -186,10 +186,12 @@ func (s *Service) handleAuthUpdate(ctx context.Context, update watcher.AuthUpdat
 	if s == nil {
 		return
 	}
+	log.Debugf("handleAuthUpdate: action=%v id=%s provider=%s", update.Action, update.ID, func() string { if update.Auth != nil { return update.Auth.Provider }; return "nil" }())
 	s.cfgMu.RLock()
 	cfg := s.cfg
 	s.cfgMu.RUnlock()
 	if cfg == nil || s.coreManager == nil {
+		log.Debugf("handleAuthUpdate: cfg=%v coreManager=%v - skipping", cfg != nil, s.coreManager != nil)
 		return
 	}
 	switch update.Action {
@@ -285,8 +287,10 @@ func (s *Service) wsOnDisconnected(channelID string, reason error) {
 
 func (s *Service) applyCoreAuthAddOrUpdate(ctx context.Context, auth *coreauth.Auth) {
 	if s == nil || s.coreManager == nil || auth == nil || auth.ID == "" {
+		log.Debugf("applyCoreAuthAddOrUpdate: early return - s=%v coreManager=%v auth=%v authID=%q", s != nil, s != nil && s.coreManager != nil, auth != nil, func() string { if auth != nil { return auth.ID }; return "" }())
 		return
 	}
+	log.Debugf("applyCoreAuthAddOrUpdate: processing auth id=%s provider=%s label=%s", auth.ID, auth.Provider, auth.Label)
 	auth = auth.Clone()
 	s.ensureExecutorsForAuth(auth)
 
@@ -1059,6 +1063,7 @@ func (s *Service) registerModelsForAuth(a *coreauth.Auth) {
 	if a == nil || a.ID == "" {
 		return
 	}
+	log.Debugf("registerModelsForAuth: called for id=%s provider=%s disabled=%v", a.ID, a.Provider, a.Disabled)
 	if a.Disabled {
 		GlobalModelRegistry().UnregisterClient(a.ID)
 		return
@@ -1146,6 +1151,7 @@ func (s *Service) registerModelsForAuth(a *coreauth.Auth) {
 		if a.Attributes != nil {
 			codexPlanType = strings.TrimSpace(a.Attributes["plan_type"])
 		}
+		log.Debugf("registerModelsForAuth: codex provider=%s plan_type=%q attributes_keys=%v", provider, codexPlanType, func() []string { if a.Attributes == nil { return nil }; keys := make([]string, 0, len(a.Attributes)); for k := range a.Attributes { keys = append(keys, k) }; return keys }())
 		switch strings.ToLower(codexPlanType) {
 		case "pro":
 			models = registry.GetCodexProModels()
@@ -1241,6 +1247,7 @@ func (s *Service) registerModelsForAuth(a *coreauth.Auth) {
 		}
 	}
 	models = applyOAuthModelAlias(s.cfg, provider, authKind, models)
+	log.Debugf("registerModelsForAuth: provider=%s modelCount=%d after applyExcludedModels", provider, len(models))
 	if len(models) > 0 {
 		key := provider
 		if key == "" {

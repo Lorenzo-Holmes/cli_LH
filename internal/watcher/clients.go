@@ -13,12 +13,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/redisqueue"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/watcher/diff"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/watcher/synthesizer"
-	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/config"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/redisqueue"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/util"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/watcher/diff"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/watcher/synthesizer"
+	coreauth "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/auth"
 	log "github.com/sirupsen/logrus"
 )
 

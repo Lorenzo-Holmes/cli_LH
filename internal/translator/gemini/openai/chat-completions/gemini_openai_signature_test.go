@@ -3,7 +3,7 @@ package chat_completions
 import (
 	"testing"
 
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/signature"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/signature"
 	"github.com/tidwall/gjson"
 )
 

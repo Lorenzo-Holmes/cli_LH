@@ -24,14 +24,14 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/router-for-me/CLIProxyAPI/v7/sdk/api"
-	sdkAuth "github.com/router-for-me/CLIProxyAPI/v7/sdk/auth"
-	"github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy"
-	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
-	clipexec "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executor"
-	"github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
-	"github.com/router-for-me/CLIProxyAPI/v7/sdk/logging"
-	sdktr "github.com/router-for-me/CLIProxyAPI/v7/sdk/translator"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/sdk/api"
+	sdkAuth "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/auth"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy"
+	coreauth "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/auth"
+	clipexec "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/executor"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/sdk/config"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/sdk/logging"
+	sdktr "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/translator"
 )
 
 const (

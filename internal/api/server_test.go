@@ -11,13 +11,13 @@ import (
 	"time"
 
 	gin "github.com/gin-gonic/gin"
-	proxyconfig "github.com/router-for-me/CLIProxyAPI/v7/internal/config"
-	internallogging "github.com/router-for-me/CLIProxyAPI/v7/internal/logging"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/redisqueue"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/registry"
-	sdkaccess "github.com/router-for-me/CLIProxyAPI/v7/sdk/access"
-	"github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
-	sdkconfig "github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
+	proxyconfig "github.com/Lorenzo-Holmes/cli_LH/v7/internal/config"
+	internallogging "github.com/Lorenzo-Holmes/cli_LH/v7/internal/logging"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/redisqueue"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/registry"
+	sdkaccess "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/access"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/auth"
+	sdkconfig "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/config"
 )
 
 func newTestServer(t *testing.T) *Server {
@@ -495,6 +495,84 @@ func TestDefaultRequestLoggerFactory_UsesResolvedLogDirectory(t *testing.T) {
 	for _, entry := range configEntries {
 		if strings.HasPrefix(entry.Name(), "error-") && strings.HasSuffix(entry.Name(), ".log") {
 			t.Fatalf("unexpected forced error log in config dir %s", configLogsDir)
+		}
+	}
+}
+
+func TestStatuszReturnsMachineReadableSidecarStatus(t *testing.T) {
+	server := newTestServer(t)
+	server.sidecarRuntime = SidecarRuntimeInfo{
+		TUIMode:    true,
+		Standalone: true,
+		LocalModel: true,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/statusz", nil)
+	w := httptest.NewRecorder()
+	server.engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("unexpected status code: got %d want %d; body=%s", w.Code, http.StatusOK, w.Body.String())
+	}
+
+	var resp sidecarStatusResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to parse response JSON: %v; body=%s", err, w.Body.String())
+	}
+	if resp.Status != "ready" {
+		t.Fatalf("status = %q, want ready", resp.Status)
+	}
+	if resp.Service != "cli_LH" {
+		t.Fatalf("service = %q, want cli_LH", resp.Service)
+	}
+	if resp.Build.Version == "" || resp.Build.Commit == "" || resp.Build.BuildDate == "" {
+		t.Fatalf("build metadata is incomplete: %+v", resp.Build)
+	}
+	if resp.Server.ConfigPath == "" {
+		t.Fatalf("config path should be present")
+	}
+	if resp.Server.AuthDir == "" {
+		t.Fatalf("auth dir should be present")
+	}
+	if !resp.Runtime.TUIMode || !resp.Runtime.Standalone || !resp.Runtime.LocalModel {
+		t.Fatalf("runtime flags not reflected: %+v", resp.Runtime)
+	}
+}
+
+func TestStatuszHeadHasNoBody(t *testing.T) {
+	server := newTestServer(t)
+
+	req := httptest.NewRequest(http.MethodHead, "/statusz", nil)
+	w := httptest.NewRecorder()
+	server.engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("unexpected status code: got %d want %d; body=%s", w.Code, http.StatusOK, w.Body.String())
+	}
+	if w.Body.Len() != 0 {
+		t.Fatalf("expected empty body for HEAD request, got %q", w.Body.String())
+	}
+}
+
+func TestStatuszOmitsSecrets(t *testing.T) {
+	server := newTestServer(t)
+	server.cfg.RemoteManagement.SecretKey = "management-secret-value"
+	server.cfg.APIKeys = []string{"api-secret-value"}
+	server.cfg.GeminiKey = []proxyconfig.GeminiKey{{APIKey: "gemini-secret-value"}}
+	server.cfg.CodexKey = []proxyconfig.CodexKey{{APIKey: "codex-secret-value"}}
+	server.cfg.ClaudeKey = []proxyconfig.ClaudeKey{{APIKey: "claude-secret-value"}}
+
+	req := httptest.NewRequest(http.MethodGet, "/statusz", nil)
+	w := httptest.NewRecorder()
+	server.engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("unexpected status code: got %d want %d; body=%s", w.Code, http.StatusOK, w.Body.String())
+	}
+	body := w.Body.String()
+	for _, secret := range []string{"management-secret-value", "api-secret-value", "gemini-secret-value", "codex-secret-value", "claude-secret-value"} {
+		if strings.Contains(body, secret) {
+			t.Fatalf("status response leaked secret %q: %s", secret, body)
 		}
 	}
 }

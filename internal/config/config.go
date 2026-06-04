@@ -13,16 +13,16 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/registry"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/registry"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v3"
 )
 
 const (
-	DefaultPanelGitHubRepository = "https://github.com/router-for-me/Cli-Proxy-API-Management-Center"
+	DefaultPanelGitHubRepository = "https://github.com/router-for-me/cli_LH-Management-Center"
 	DefaultPprofAddr             = "127.0.0.1:8316"
-	DefaultAuthDir               = "~/.cli-proxy-api"
+	DefaultAuthDir               = "~/.cli_LH"
 )
 
 // Config represents the application's configuration, loaded from a YAML file.

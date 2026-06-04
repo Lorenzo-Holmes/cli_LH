@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
-	cliproxyauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/config"
+	cliproxyauth "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/auth"
 )
 
 const (

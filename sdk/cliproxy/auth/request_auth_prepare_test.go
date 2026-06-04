@@ -8,8 +8,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/registry"
-	cliproxyexecutor "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executor"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/registry"
+	cliproxyexecutor "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/executor"
 )
 
 type requestPrepareStore struct {

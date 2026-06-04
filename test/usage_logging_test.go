@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/redisqueue"
-	runtimeexecutor "github.com/router-for-me/CLIProxyAPI/v7/internal/runtime/executor"
-	cliproxyauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
-	cliproxyexecutor "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executor"
-	sdktranslator "github.com/router-for-me/CLIProxyAPI/v7/sdk/translator"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/config"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/redisqueue"
+	runtimeexecutor "github.com/Lorenzo-Holmes/cli_LH/v7/internal/runtime/executor"
+	cliproxyauth "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/auth"
+	cliproxyexecutor "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/executor"
+	sdktranslator "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/translator"
 )
 
 func TestGeminiExecutorRecordsSuccessfulZeroUsageInQueue(t *testing.T) {

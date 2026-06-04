@@ -9,8 +9,8 @@ package antigravity
 import (
 	"strings"
 
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/registry"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/thinking"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/registry"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/thinking"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )

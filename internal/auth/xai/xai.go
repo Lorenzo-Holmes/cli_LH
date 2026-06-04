@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/config"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -88,7 +88,7 @@ func BuildAuthorizeURL(params AuthorizeURLParams) (string, error) {
 		"state":                 {strings.TrimSpace(params.State)},
 		"nonce":                 {strings.TrimSpace(params.Nonce)},
 		"plan":                  {"generic"},
-		"referrer":              {"cli-proxy-api"},
+		"referrer":              {"cli_LH"},
 	}
 	return endpoint + "?" + values.Encode(), nil
 }

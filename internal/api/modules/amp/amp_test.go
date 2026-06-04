@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/api/modules"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
-	sdkaccess "github.com/router-for-me/CLIProxyAPI/v7/sdk/access"
-	"github.com/router-for-me/CLIProxyAPI/v7/sdk/api/handlers"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/api/modules"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/config"
+	sdkaccess "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/access"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/sdk/api/handlers"
 )
 
 func TestAmpModule_Name(t *testing.T) {

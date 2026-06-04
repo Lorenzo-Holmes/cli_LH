@@ -13,14 +13,14 @@ import (
 	"strings"
 	"time"
 
-	kimiauth "github.com/router-for-me/CLIProxyAPI/v7/internal/auth/kimi"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/runtime/executor/helps"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/thinking"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
-	cliproxyauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
-	cliproxyexecutor "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executor"
-	sdktranslator "github.com/router-for-me/CLIProxyAPI/v7/sdk/translator"
+	kimiauth "github.com/Lorenzo-Holmes/cli_LH/v7/internal/auth/kimi"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/config"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/runtime/executor/helps"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/thinking"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/util"
+	cliproxyauth "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/auth"
+	cliproxyexecutor "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/executor"
+	sdktranslator "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/translator"
 	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -697,7 +697,7 @@ func getKimiDeviceModel() string {
 func getKimiDeviceID() string {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return "cli-proxy-api-device"
+		return "cli_LH-device"
 	}
 	// Check kimi-cli's device_id location first (platform-specific)
 	var kimiShareDir string
@@ -717,7 +717,7 @@ func getKimiDeviceID() string {
 	if data, err := os.ReadFile(deviceIDPath); err == nil {
 		return strings.TrimSpace(string(data))
 	}
-	return "cli-proxy-api-device"
+	return "cli_LH-device"
 }
 
 // kimiCreds extracts the access token from auth.

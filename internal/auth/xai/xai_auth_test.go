@@ -41,7 +41,7 @@ func TestBuildAuthorizeURLIncludesXAIRequiredParameters(t *testing.T) {
 		"state":                 "state-123",
 		"nonce":                 "nonce-123",
 		"plan":                  "generic",
-		"referrer":              "cli-proxy-api",
+		"referrer":              "cli_LH",
 	}
 	for key, value := range want {
 		if got := query.Get(key); got != value {

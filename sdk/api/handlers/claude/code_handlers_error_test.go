@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/interfaces"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/interfaces"
 	"github.com/tidwall/gjson"
 )
 

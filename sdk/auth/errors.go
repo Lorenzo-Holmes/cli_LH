@@ -3,7 +3,7 @@ package auth
 import (
 	"fmt"
 
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/interfaces"
+	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/interfaces"
 )
 
 // ProjectSelectionError indicates that the user must choose a specific project ID.
