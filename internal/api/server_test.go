@@ -20,7 +20,7 @@ import (
 	sdkconfig "github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
 )
 
-func newTestServer(t *testing.T) *Server {
+func newTestServer(t *testing.T, opts ...ServerOption) *Server {
 	t.Helper()
 
 	gin.SetMode(gin.TestMode)
@@ -46,7 +46,7 @@ func newTestServer(t *testing.T) *Server {
 	accessManager := sdkaccess.NewManager()
 
 	configPath := filepath.Join(tmpDir, "config.yaml")
-	return NewServer(cfg, authManager, accessManager, configPath)
+	return NewServer(cfg, authManager, accessManager, configPath, opts...)
 }
 
 func TestHealthz(t *testing.T) {
@@ -540,6 +540,132 @@ func TestStatuszReturnsMachineReadableSidecarStatus(t *testing.T) {
 	}
 	if !resp.Runtime.Sidecar {
 		t.Fatalf("runtime Sidecar flag should be true, got: %+v", resp.Runtime)
+	}
+}
+
+func TestStatuszContractFieldShape(t *testing.T) {
+	server := newTestServer(t)
+	server.sidecarRuntime = SidecarRuntimeInfo{Sidecar: true, LocalModel: true}
+
+	req := httptest.NewRequest(http.MethodGet, "/statusz", nil)
+	w := httptest.NewRecorder()
+	server.engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("unexpected status code: got %d want %d; body=%s", w.Code, http.StatusOK, w.Body.String())
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("failed to parse response JSON: %v; body=%s", err, w.Body.String())
+	}
+
+	for _, key := range []string{"status", "service", "build", "server", "runtime", "providers"} {
+		if _, ok := payload[key]; !ok {
+			t.Fatalf("missing top-level status field %q in %#v", key, payload)
+		}
+	}
+	if payload["status"] != "ready" {
+		t.Fatalf("status = %#v, want ready", payload["status"])
+	}
+
+	serverInfo, ok := payload["server"].(map[string]any)
+	if !ok {
+		t.Fatalf("server field = %#v, want object", payload["server"])
+	}
+	for _, key := range []string{"host", "port", "configPath", "authDir"} {
+		if _, ok := serverInfo[key]; !ok {
+			t.Fatalf("missing server field %q in %#v", key, serverInfo)
+		}
+	}
+
+	runtimeInfo, ok := payload["runtime"].(map[string]any)
+	if !ok {
+		t.Fatalf("runtime field = %#v, want object", payload["runtime"])
+	}
+	for _, key := range []string{"sidecar", "tuiMode", "standalone", "localModel"} {
+		if _, ok := runtimeInfo[key]; !ok {
+			t.Fatalf("missing runtime field %q in %#v", key, runtimeInfo)
+		}
+	}
+	if runtimeInfo["sidecar"] != true || runtimeInfo["localModel"] != true {
+		t.Fatalf("runtime sidecar/localModel flags not reflected: %#v", runtimeInfo)
+	}
+
+	providers, ok := payload["providers"].(map[string]any)
+	if !ok {
+		t.Fatalf("providers field = %#v, want object", payload["providers"])
+	}
+	for _, key := range []string{"geminiApiKeys", "codexApiKeys", "claudeApiKeys", "vertexApiKeys", "homeEnabled"} {
+		if _, ok := providers[key]; !ok {
+			t.Fatalf("missing providers field %q in %#v", key, providers)
+		}
+	}
+}
+
+func TestManagementRoutesDisabledWithoutSecret(t *testing.T) {
+	t.Setenv("MANAGEMENT_PASSWORD", "")
+
+	server := newTestServer(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/v0/management/config", nil)
+	req.Header.Set("Authorization", "Bearer ignored")
+	w := httptest.NewRecorder()
+	server.engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d body=%s", w.Code, http.StatusNotFound, w.Body.String())
+	}
+}
+
+func TestKeepAliveEndpointIsNotRegisteredByDefault(t *testing.T) {
+	server := newTestServer(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/keep-alive", nil)
+	w := httptest.NewRecorder()
+	server.engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d body=%s", w.Code, http.StatusNotFound, w.Body.String())
+	}
+}
+
+func TestKeepAliveEndpointRequiresLocalPasswordWhenEnabled(t *testing.T) {
+	server := newTestServer(t,
+		WithLocalManagementPassword("local-secret"),
+		WithKeepAliveEndpoint(time.Hour, func() {}),
+	)
+	t.Cleanup(func() {
+		if server.keepAliveStop == nil {
+			return
+		}
+		select {
+		case server.keepAliveStop <- struct{}{}:
+		default:
+		}
+	})
+
+	missingReq := httptest.NewRequest(http.MethodGet, "/keep-alive", nil)
+	missingW := httptest.NewRecorder()
+	server.engine.ServeHTTP(missingW, missingReq)
+	if missingW.Code != http.StatusUnauthorized {
+		t.Fatalf("missing password status = %d, want %d body=%s", missingW.Code, http.StatusUnauthorized, missingW.Body.String())
+	}
+
+	bearerReq := httptest.NewRequest(http.MethodGet, "/keep-alive", nil)
+	bearerReq.Header.Set("Authorization", "Bearer local-secret")
+	bearerW := httptest.NewRecorder()
+	server.engine.ServeHTTP(bearerW, bearerReq)
+	if bearerW.Code != http.StatusOK {
+		t.Fatalf("bearer password status = %d, want %d body=%s", bearerW.Code, http.StatusOK, bearerW.Body.String())
+	}
+
+	headerReq := httptest.NewRequest(http.MethodGet, "/keep-alive", nil)
+	headerReq.Header.Set("X-Local-Password", "local-secret")
+	headerW := httptest.NewRecorder()
+	server.engine.ServeHTTP(headerW, headerReq)
+	if headerW.Code != http.StatusOK {
+		t.Fatalf("header password status = %d, want %d body=%s", headerW.Code, http.StatusOK, headerW.Body.String())
 	}
 }
 
