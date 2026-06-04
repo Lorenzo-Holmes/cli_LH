@@ -60,6 +60,17 @@ input:focus { border-color: var(--cyan); }
 .field { display: grid; gap: 8px; margin-bottom: 14px; }
 .field-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
 .toggle-grid { display: flex; gap: 16px; color: #c7d8d4; }
+.preflight-panel { grid-column: span 2; }
+.preflight-list { display: grid; gap: 0.75rem; }
+.preflight-check { display: grid; grid-template-columns: auto 1fr; gap: 0.75rem; padding: 0.85rem; border-radius: 16px; border: 1px solid rgba(148, 163, 184, 0.18); background: rgba(15, 23, 42, 0.58); }
+.preflight-check.ok { border-color: rgba(34, 197, 94, 0.35); }
+.preflight-check.warning { border-color: rgba(245, 158, 11, 0.45); }
+.preflight-check.error { border-color: rgba(248, 113, 113, 0.5); }
+.preflight-icon { color: var(--cyan); margin-top: 0.15rem; }
+.preflight-check.ok .preflight-icon { color: var(--green); }
+.preflight-check.warning .preflight-icon, .preflight-check.error .preflight-icon { color: var(--amber); }
+.preflight-check p { margin: 0.2rem 0; }
+.preflight-check small { color: var(--text-muted); }
 .log-panel { grid-column: 1 / -1; }
 .log-stream { height: 320px; overflow: auto; border-radius: 16px; background: rgba(0,0,0,0.28); padding: 12px; font-family: "Cascadia Mono", Consolas, monospace; }
 .log-empty { color: var(--text-muted); }

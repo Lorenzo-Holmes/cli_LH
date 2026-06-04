@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ConfigPanel } from "./components/ConfigPanel";
 import { ControlPanel } from "./components/ControlPanel";
 import { LogPanel } from "./components/LogPanel";
+import { PreflightPanel } from "./components/PreflightPanel";
 import { Sidebar } from "./components/Sidebar";
 import { StatusPanel } from "./components/StatusPanel";
-import { clearLogs, discoverLaunchProfile, getSettings, getSidecarState, restartSidecar, saveSettings, selectBinaryPath, selectConfigPath, startSidecar, stopSidecar, subscribeSidecarEvents, type LogLine, type SidecarState } from "./lib/sidecar";
+import { clearLogs, discoverLaunchProfile, getSettings, getSidecarState, restartSidecar, saveSettings, selectBinaryPath, selectConfigPath, startSidecar, stopSidecar, subscribeSidecarEvents, validateLaunchProfile, type LogLine, type PreflightReport, type SidecarState } from "./lib/sidecar";
 import { probeSidecar, type ProbeResult } from "./lib/status";
 import { defaultSettings, normalizeSettings, type DesktopSettings } from "./lib/storage";
 
@@ -12,6 +13,7 @@ export default function App() {
   const [settings, setSettings] = useState<DesktopSettings>(defaultSettings);
   const [state, setState] = useState<SidecarState>({ phase: "idle" });
   const [probe, setProbe] = useState<ProbeResult>();
+  const [preflight, setPreflight] = useState<PreflightReport>();
   const [logs, setLogs] = useState<LogLine[]>([]);
   const [busy, setBusy] = useState(false);
 
@@ -28,6 +30,11 @@ export default function App() {
       setState((current) => ({ ...current, phase: "ready", message: "HTTP probes report ready" }));
     }
   }, [normalizedSettings.baseUrl, state.phase]);
+
+  const refreshPreflight = useCallback(async () => {
+    const result = await validateLaunchProfile(normalizedSettings);
+    setPreflight(result);
+  }, [normalizedSettings]);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,6 +61,10 @@ export default function App() {
     const timer = window.setInterval(() => void refreshProbe(), 2500);
     return () => window.clearInterval(timer);
   }, [refreshProbe]);
+
+  useEffect(() => {
+    void refreshPreflight();
+  }, [refreshPreflight]);
 
   async function runAction(action: () => Promise<SidecarState>) {
     setBusy(true);
@@ -128,6 +139,7 @@ export default function App() {
               return { ...state, message: "Settings saved" };
             })}
           />
+          <PreflightPanel report={preflight} onRefresh={() => void refreshPreflight()} />
           <LogPanel logs={logs} onClear={() => {
             setLogs([]);
             void clearLogs();
