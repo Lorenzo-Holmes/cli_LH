@@ -26,3 +26,28 @@ npm run tauri build
 ```
 
 If `rustc` and `cargo` are not available, the frontend build can still be verified.
+
+## Verification
+
+Frontend-only verification:
+
+```text
+npm run typecheck
+npm run build
+```
+
+Go core verification from repository root:
+
+```text
+go test ./...
+go build -o test-output ./cmd/server
+```
+
+Full Tauri verification requires Rust/Cargo:
+
+```text
+cd src-tauri
+cargo check
+cd ..
+npm run tauri dev
+```
