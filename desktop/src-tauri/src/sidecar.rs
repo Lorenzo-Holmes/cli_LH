@@ -102,7 +102,7 @@ impl SidecarManager {
         Ok(state)
     }
 
-    fn current_state(&self) -> Result<SidecarStateSnapshot, String> {
+    pub(crate) fn current_state(&self) -> Result<SidecarStateSnapshot, String> {
         self.state.lock().map(|state| state.clone()).map_err(|_| "state lock poisoned".to_string())
     }
 
