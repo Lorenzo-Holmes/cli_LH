@@ -53,6 +53,8 @@ npm run tauri:check
 npm run tauri dev
 ```
 
+Pull requests that touch `desktop/**` also run `.github/workflows/desktop-check.yml`, which installs Node.js, Rust, Linux Tauri system dependencies, runs frontend checks, and runs `npm run tauri:check` in CI.
+
 ## Native sidecar manager
 
 The Tauri backend owns the local `cli_LH` child process lifecycle. It persists launch settings under the app config directory, launches the configured binary with `--config <path>` and optional `--local-model`, streams stdout/stderr to frontend events, and exposes tray actions for show/start/stop/restart/quit.
