@@ -29,6 +29,9 @@ auths/*
 
 # Documentation
 docs/*
+!docs/sidecar-integration.md
+!docs/superpowers/
+!docs/superpowers/**
 AGENTS.md
 CLAUDE.md
 GEMINI.md

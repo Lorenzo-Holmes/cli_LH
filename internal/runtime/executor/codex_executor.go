@@ -981,6 +981,7 @@ func applyCodexIdentityConfuseHeaders(headers http.Header, state *codexIdentityC
 	setHeaderCasePreserved(headers, "Session-Id", state.promptCacheKey)
 	if headerValueCaseInsensitive(headers, "session_id") != "" {
 		setHeaderCasePreserved(headers, "session_id", state.promptCacheKey)
+		setHeaderAlias(headers, "Session_id", state.promptCacheKey)
 	}
 	if headerValueCaseInsensitive(headers, "Conversation_id") != "" {
 		setHeaderCasePreserved(headers, "Conversation_id", state.promptCacheKey)
@@ -988,6 +989,15 @@ func applyCodexIdentityConfuseHeaders(headers http.Header, state *codexIdentityC
 	headers.Set("X-Client-Request-Id", state.promptCacheKey)
 	headers.Set("Thread-Id", state.promptCacheKey)
 	headers.Set("X-Codex-Window-Id", state.promptCacheKey+":0")
+}
+
+func setHeaderAlias(headers http.Header, key string, value string) {
+	key = strings.TrimSpace(key)
+	value = strings.TrimSpace(value)
+	if headers == nil || key == "" || value == "" {
+		return
+	}
+	headers[key] = []string{value}
 }
 
 func applyCodexTurnMetadataIdentityConfuse(rawTurnMetadata string, state *codexIdentityConfuseState) string {

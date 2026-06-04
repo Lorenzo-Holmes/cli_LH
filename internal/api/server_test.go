@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	gin "github.com/gin-gonic/gin"
 	proxyconfig "github.com/Lorenzo-Holmes/cli_LH/v7/internal/config"
 	internallogging "github.com/Lorenzo-Holmes/cli_LH/v7/internal/logging"
 	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/redisqueue"
@@ -18,6 +17,7 @@ import (
 	sdkaccess "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/access"
 	"github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/auth"
 	sdkconfig "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/config"
+	gin "github.com/gin-gonic/gin"
 )
 
 func newTestServer(t *testing.T) *Server {
@@ -84,6 +84,59 @@ func TestHealthz(t *testing.T) {
 			t.Fatalf("expected empty body for HEAD request, got %q", rr.Body.String())
 		}
 	})
+}
+
+func TestKeepAliveEndpointIsNotRegisteredByDefault(t *testing.T) {
+	server := newTestServer(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/keep-alive", nil)
+	w := httptest.NewRecorder()
+	server.engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("keep-alive status = %d, want %d when endpoint is not explicitly enabled; body=%s", w.Code, http.StatusNotFound, w.Body.String())
+	}
+}
+
+func TestKeepAliveEndpointRequiresLocalPasswordWhenEnabled(t *testing.T) {
+	server := newTestServer(t)
+	server.localPassword = "local-secret"
+	server.enableKeepAlive(time.Minute, func() {})
+	t.Cleanup(func() {
+		select {
+		case server.keepAliveStop <- struct{}{}:
+		default:
+		}
+	})
+
+	missingReq := httptest.NewRequest(http.MethodGet, "/keep-alive", nil)
+	missingW := httptest.NewRecorder()
+	server.engine.ServeHTTP(missingW, missingReq)
+	if missingW.Code != http.StatusUnauthorized {
+		t.Fatalf("missing password status = %d, want %d; body=%s", missingW.Code, http.StatusUnauthorized, missingW.Body.String())
+	}
+
+	authReq := httptest.NewRequest(http.MethodGet, "/keep-alive", nil)
+	authReq.Header.Set("Authorization", "Bearer local-secret")
+	authW := httptest.NewRecorder()
+	server.engine.ServeHTTP(authW, authReq)
+	if authW.Code != http.StatusOK {
+		t.Fatalf("authenticated status = %d, want %d; body=%s", authW.Code, http.StatusOK, authW.Body.String())
+	}
+}
+
+func TestManagementRoutesDisabledWithoutSecret(t *testing.T) {
+	t.Setenv("MANAGEMENT_PASSWORD", "")
+	server := newTestServer(t)
+	server.cfg.RemoteManagement.SecretKey = ""
+
+	req := httptest.NewRequest(http.MethodGet, "/v0/management/config", nil)
+	w := httptest.NewRecorder()
+	server.engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("management route status = %d, want %d when no management secret is configured; body=%s", w.Code, http.StatusNotFound, w.Body.String())
+	}
 }
 
 func TestManagementUsageRequiresManagementAuthAndPopsArray(t *testing.T) {
@@ -536,6 +589,75 @@ func TestStatuszReturnsMachineReadableSidecarStatus(t *testing.T) {
 	}
 	if !resp.Runtime.TUIMode || !resp.Runtime.Standalone || !resp.Runtime.LocalModel {
 		t.Fatalf("runtime flags not reflected: %+v", resp.Runtime)
+	}
+}
+
+func TestStatuszContractFieldShape(t *testing.T) {
+	server := newTestServer(t)
+	server.cfg.Host = "127.0.0.1"
+	server.cfg.Port = 8317
+	server.sidecarRuntime = SidecarRuntimeInfo{
+		TUIMode:    false,
+		Standalone: false,
+		LocalModel: true,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/statusz", nil)
+	w := httptest.NewRecorder()
+	server.engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("unexpected status code: got %d want %d; body=%s", w.Code, http.StatusOK, w.Body.String())
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("failed to parse response JSON: %v; body=%s", err, w.Body.String())
+	}
+
+	for _, key := range []string{"status", "service", "build", "server", "runtime", "providers"} {
+		if _, ok := payload[key]; !ok {
+			t.Fatalf("status payload missing top-level key %q: %s", key, w.Body.String())
+		}
+	}
+	if got, _ := payload["status"].(string); got != "ready" {
+		t.Fatalf("status = %q, want ready", got)
+	}
+	if got, _ := payload["service"].(string); got != "cli_LH" {
+		t.Fatalf("service = %q, want cli_LH", got)
+	}
+
+	serverInfo, ok := payload["server"].(map[string]any)
+	if !ok {
+		t.Fatalf("server field = %#v, want object", payload["server"])
+	}
+	for _, key := range []string{"host", "port", "configPath", "authDir"} {
+		if _, ok := serverInfo[key]; !ok {
+			t.Fatalf("server field missing key %q: %#v", key, serverInfo)
+		}
+	}
+
+	runtimeInfo, ok := payload["runtime"].(map[string]any)
+	if !ok {
+		t.Fatalf("runtime field = %#v, want object", payload["runtime"])
+	}
+	for _, key := range []string{"tuiMode", "standalone", "localModel"} {
+		if _, ok := runtimeInfo[key]; !ok {
+			t.Fatalf("runtime field missing key %q: %#v", key, runtimeInfo)
+		}
+	}
+	if got, _ := runtimeInfo["localModel"].(bool); !got {
+		t.Fatalf("runtime.localModel = %v, want true", runtimeInfo["localModel"])
+	}
+
+	providerInfo, ok := payload["providers"].(map[string]any)
+	if !ok {
+		t.Fatalf("providers field = %#v, want object", payload["providers"])
+	}
+	for _, key := range []string{"geminiApiKeys", "codexApiKeys", "claudeApiKeys", "openaiCompatibilityEntries", "vertexApiKeys", "oauthModelAliases", "homeEnabled"} {
+		if _, ok := providerInfo[key]; !ok {
+			t.Fatalf("providers field missing key %q: %#v", key, providerInfo)
+		}
 	}
 }
 

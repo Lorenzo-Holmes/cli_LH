@@ -1,52 +1,37 @@
 # Sidecar Integration Guide
 
-`cli_LH` can run as a local sidecar for desktop shells, web panels, editor extensions, or other local controllers.
+`cli_LH` can be controlled by an external desktop shell as a local sidecar process. The shell owns UI and process lifecycle; `cli_LH` owns proxy execution, provider adapters, OAuth/login flows, auth storage, model registry, and safe status endpoints.
 
-## Shell/Core Separation
+For the full contract, see `docs/superpowers/specs/2026-06-04-desktop-shell-sidecar-contract-design.md`.
 
-The shell owns user interaction. The core owns proxy execution.
+## Recommended Startup
 
-Examples of shells:
-
-- Tauri or Electron desktop tools
-- web management panels
-- VS Code extensions
-- command-line wrappers
-
-`cli_LH` should remain the core service. Shells should start it, pass explicit configuration, monitor it, and call its HTTP APIs.
-
-## Recommended Launch Commands
-
-Start the proxy service with a shell-owned config file:
+Build the server binary first:
 
 ```text
-cli_LH --config <config.yaml> --local-model --no-browser
+go build -o cli_LH ./cmd/server
 ```
 
-Start an isolated local service mode:
+Start the sidecar with an explicit config file:
 
 ```text
-cli_LH --standalone --config <config.yaml> --local-model --no-browser
+cli_LH --config <path-to-config.yaml>
 ```
 
-Run Codex OAuth login as a separate foreground operation:
+Optional deterministic local-model startup:
 
 ```text
-cli_LH --codex-login --config <config.yaml> --no-browser
+cli_LH --config <path-to-config.yaml> --local-model
 ```
 
-Run Codex device login when browser automation is not desired:
-
-```text
-cli_LH --codex-device-login --config <config.yaml> --no-browser
-```
+Do not use `--standalone` as a generic desktop sidecar flag. It currently belongs to TUI standalone behavior.
 
 ## Health and Status
 
-Use `/healthz` for a minimal readiness check:
+Use `/healthz` for liveness:
 
 ```text
-GET /healthz
+GET http://127.0.0.1:<port>/healthz
 ```
 
 Expected response:
@@ -55,64 +40,46 @@ Expected response:
 {"status":"ok"}
 ```
 
-Use `/statusz` for machine-readable sidecar metadata:
+Use `/statusz` for machine-readable readiness and safe runtime metadata:
 
 ```text
-GET /statusz
+GET http://127.0.0.1:<port>/statusz
 ```
 
-Expected response shape:
+The current core status value is `ready`. Other lifecycle states such as `starting`, `stopping`, or `crashed` should be maintained by the external shell unless explicitly added to the core in the future.
 
-```json
-{
-  "status": "ready",
-  "service": "cli_LH",
-  "build": {
-    "version": "dev",
-    "commit": "none",
-    "buildDate": "unknown"
-  },
-  "server": {
-    "host": "127.0.0.1",
-    "port": 8317,
-    "configPath": "C:/path/to/config.yaml",
-    "authDir": "C:/path/to/auths"
-  },
-  "runtime": {
-    "tuiMode": false,
-    "standalone": false,
-    "localModel": true
-  },
-  "providers": {
-    "geminiApiKeys": 0,
-    "codexApiKeys": 0,
-    "claudeApiKeys": 0,
-    "openaiCompatibilityEntries": 0,
-    "vertexApiKeys": 0,
-    "oauthModelAliases": 0,
-    "homeEnabled": false
-  }
-}
+## Login Flows
+
+Run login flows as foreground subprocesses using the same config file:
+
+```text
+cli_LH --codex-login --config <path-to-config.yaml>
+cli_LH --codex-device-login --config <path-to-config.yaml>
+cli_LH --claude-login --config <path-to-config.yaml>
 ```
 
-The status endpoint intentionally exposes only allowlisted metadata and must not expose API keys, OAuth tokens, management passwords, or provider secrets.
+Use `--no-browser` only when the shell wants to own browser opening or device-code presentation.
 
-## Configuration Ownership
+## Management API
 
-The shell may create or edit a `cli_LH` `config.yaml`, but `cli_LH` does not read shell-specific configuration schemas.
+The management API is optional and authenticated. Do not assume `/v0/management` exists after startup. If a desktop shell needs management APIs, configure a management secret deliberately and keep the service bound to localhost unless the user explicitly chooses remote access.
 
-Recommended shell responsibilities:
+## Logs
 
-1. Choose a config file path.
-2. Choose an auth directory.
-3. Start `cli_LH` with explicit arguments.
-4. Poll `/healthz` or `/statusz` until ready.
-5. Call proxy and management APIs over localhost.
-6. Stop the sidecar process during application shutdown.
+For Phase 1 integrations, capture child-process stdout and stderr. File log paths are resolved by the core and should not be hard-coded by shells.
 
-## Security Notes
+## Example Controller
 
-- Prefer binding to `127.0.0.1` for desktop integrations.
-- Keep management APIs protected by configured credentials.
-- Do not display raw tokens or API keys in shell logs.
-- Treat config and auth directories as sensitive local data.
+A minimal process-launching controller is available at `examples/sidecar-controller`.
+
+Build it:
+
+```text
+go build ./examples/sidecar-controller
+```
+
+Run it with an already-built server binary:
+
+```text
+sidecar-controller --binary <path-to-cli_LH> --config <path-to-config.yaml> --base-url http://127.0.0.1:<port>
+```
