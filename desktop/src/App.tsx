@@ -1,0 +1,107 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ConfigPanel } from "./components/ConfigPanel";
+import { ControlPanel } from "./components/ControlPanel";
+import { LogPanel } from "./components/LogPanel";
+import { Sidebar } from "./components/Sidebar";
+import { StatusPanel } from "./components/StatusPanel";
+import { clearLogs, getSettings, getSidecarState, restartSidecar, saveSettings, startSidecar, stopSidecar, subscribeSidecarEvents, type LogLine, type SidecarState } from "./lib/sidecar";
+import { probeSidecar, type ProbeResult } from "./lib/status";
+import { defaultSettings, normalizeSettings, type DesktopSettings } from "./lib/storage";
+
+export default function App() {
+  const [settings, setSettings] = useState<DesktopSettings>(defaultSettings);
+  const [state, setState] = useState<SidecarState>({ phase: "idle" });
+  const [probe, setProbe] = useState<ProbeResult>();
+  const [logs, setLogs] = useState<LogLine[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  const normalizedSettings = useMemo(() => normalizeSettings(settings), [settings]);
+
+  const pushLog = useCallback((line: LogLine) => {
+    setLogs((current) => [...current.slice(-300), line]);
+  }, []);
+
+  const refreshProbe = useCallback(async () => {
+    const result = await probeSidecar(normalizedSettings.baseUrl);
+    setProbe(result);
+    if (result.ok && state.phase === "starting") {
+      setState((current) => ({ ...current, phase: "ready", message: "HTTP probes report ready" }));
+    }
+  }, [normalizedSettings.baseUrl, state.phase]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let unlisten: (() => void)[] = [];
+
+    void getSettings().then((loaded) => {
+      if (!cancelled) setSettings(normalizeSettings(loaded));
+    });
+    void getSidecarState().then((loaded) => {
+      if (!cancelled) setState(loaded);
+    });
+    void subscribeSidecarEvents({ onState: setState, onLog: pushLog }).then((handlers) => {
+      unlisten = handlers;
+    });
+
+    return () => {
+      cancelled = true;
+      unlisten.forEach((handler) => handler());
+    };
+  }, [pushLog]);
+
+  useEffect(() => {
+    void refreshProbe();
+    const timer = window.setInterval(() => void refreshProbe(), 2500);
+    return () => window.clearInterval(timer);
+  }, [refreshProbe]);
+
+  async function runAction(action: () => Promise<SidecarState>) {
+    setBusy(true);
+    try {
+      const next = await action();
+      setState(next);
+      pushLog({ source: "system", message: next.message ?? `state=${next.phase}`, timestamp: new Date().toISOString() });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setState({ phase: "error", message });
+      pushLog({ source: "system", message, timestamp: new Date().toISOString() });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="app-shell">
+      <Sidebar phase={state.phase} />
+      <main className="dashboard">
+        <header className="topbar">
+          <div>
+            <p>LOCAL SIDECAR CONTROL</p>
+            <h1>Operational cockpit for cli_LH</h1>
+          </div>
+          <button onClick={() => void refreshProbe()}>Probe now</button>
+        </header>
+        <div className="dashboard-grid">
+          <ControlPanel
+            settings={normalizedSettings}
+            state={state}
+            busy={busy}
+            onStart={() => void runAction(() => startSidecar(normalizedSettings))}
+            onStop={() => void runAction(stopSidecar)}
+            onRestart={() => void runAction(() => restartSidecar(normalizedSettings))}
+          />
+          <StatusPanel probe={probe} />
+          <ConfigPanel settings={settings} onChange={setSettings} onSave={() => void runAction(async () => {
+            const saved = await saveSettings(normalizedSettings);
+            setSettings(saved);
+            return { ...state, message: "Settings saved" };
+          })} />
+          <LogPanel logs={logs} onClear={() => {
+            setLogs([]);
+            void clearLogs();
+          }} />
+        </div>
+      </main>
+    </div>
+  );
+}
