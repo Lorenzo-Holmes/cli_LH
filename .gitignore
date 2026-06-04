@@ -14,6 +14,9 @@ logs/*
 conv/*
 temp/*
 refs/*
+desktop/node_modules/
+desktop/dist/
+desktop/src-tauri/target/
 
 # Storage backends
 pgstore/*
