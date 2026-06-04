@@ -31,6 +31,7 @@ export function ControlPanel({
         <p>{state.message ?? "Ready to control the local cli_LH sidecar."}</p>
       </div>
       {missingPaths && <div className="inline-warning">Set both binary path and config path before starting.</div>}
+      {typeof state.exitCode === "number" && <div className="inline-error">Last exit code: {state.exitCode}</div>}
       <div className="button-row">
         <button className="primary" onClick={onStart} disabled={busy || missingPaths}>
           <Play size={16} /> Start

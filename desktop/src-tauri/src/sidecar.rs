@@ -4,8 +4,8 @@ use std::{
     io::{BufRead, BufReader},
     path::PathBuf,
     process::{Child, Command, Stdio},
-    sync::Mutex,
-    time::{SystemTime, UNIX_EPOCH},
+    sync::{Arc, Mutex},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use crate::tray;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -41,6 +41,7 @@ pub struct SidecarStateSnapshot {
     pub message: Option<String>,
     pub started_at: Option<String>,
     pub stopped_at: Option<String>,
+    pub exit_code: Option<i32>,
 }
 
 impl Default for SidecarStateSnapshot {
@@ -51,6 +52,7 @@ impl Default for SidecarStateSnapshot {
             message: None,
             started_at: None,
             stopped_at: None,
+            exit_code: None,
         }
     }
 }
@@ -80,15 +82,15 @@ pub struct PreflightReport {
 }
 
 pub struct SidecarManager {
-    child: Mutex<Option<Child>>,
-    state: Mutex<SidecarStateSnapshot>,
+    child: Arc<Mutex<Option<Child>>>,
+    state: Arc<Mutex<SidecarStateSnapshot>>,
 }
 
 impl SidecarManager {
     pub fn new() -> Self {
         Self {
-            child: Mutex::new(None),
-            state: Mutex::new(SidecarStateSnapshot::default()),
+            child: Arc::new(Mutex::new(None)),
+            state: Arc::new(Mutex::new(SidecarStateSnapshot::default())),
         }
     }
 
@@ -158,6 +160,7 @@ impl SidecarManager {
                 message: Some(message.clone()),
                 started_at: None,
                 stopped_at: Some(now_string()),
+                exit_code: None,
             });
             message
         })?;
@@ -180,15 +183,26 @@ impl SidecarManager {
             });
         }
 
+        let started_at = now_string();
         let mut child_guard = self.child.lock().map_err(|_| "child lock poisoned".to_string())?;
         *child_guard = Some(child);
+        drop(child_guard);
+
+        spawn_exit_watcher(
+            app.clone(),
+            Arc::clone(&self.child),
+            Arc::clone(&self.state),
+            pid,
+            started_at.clone(),
+        );
 
         self.set_state(app, SidecarStateSnapshot {
             phase: "starting".to_string(),
             pid: Some(pid),
             message: Some("process started; waiting for HTTP readiness".to_string()),
-            started_at: Some(now_string()),
+            started_at: Some(started_at),
             stopped_at: None,
+            exit_code: None,
         })
     }
 
@@ -212,6 +226,7 @@ impl SidecarManager {
             message: Some("sidecar stopped".to_string()),
             started_at: None,
             stopped_at: Some(now_string()),
+            exit_code: None,
         })
     }
 
@@ -219,6 +234,74 @@ impl SidecarManager {
         let _ = self.stop(app);
         self.start(app, settings)
     }
+}
+
+fn spawn_exit_watcher(
+    app: AppHandle,
+    child: Arc<Mutex<Option<Child>>>,
+    state: Arc<Mutex<SidecarStateSnapshot>>,
+    pid: u32,
+    started_at: String,
+) {
+    std::thread::spawn(move || loop {
+        std::thread::sleep(Duration::from_millis(750));
+
+        let exit_status = {
+            let mut child_guard = match child.lock() {
+                Ok(guard) => guard,
+                Err(_) => return,
+            };
+            let Some(process) = child_guard.as_mut() else {
+                return;
+            };
+            match process.try_wait() {
+                Ok(Some(status)) => {
+                    let _ = child_guard.take();
+                    status
+                }
+                Ok(None) => continue,
+                Err(err) => {
+                    let _ = child_guard.take();
+                    let snapshot = SidecarStateSnapshot {
+                        phase: "error".to_string(),
+                        pid: None,
+                        message: Some(format!("sidecar status check failed: {err}")),
+                        started_at: Some(started_at.clone()),
+                        stopped_at: Some(now_string()),
+                        exit_code: None,
+                    };
+                    if let Ok(mut state_guard) = state.lock() {
+                        *state_guard = snapshot.clone();
+                    }
+                    let _ = app.emit("sidecar://state", snapshot.clone());
+                    tray::sync_tray_state(&app, &snapshot.phase);
+                    return;
+                }
+            }
+        };
+
+        let exit_code = exit_status.code();
+        let phase = if exit_status.success() { "stopped" } else { "error" }.to_string();
+        let message = match exit_code {
+            Some(code) => format!("sidecar process {pid} exited with code {code}"),
+            None => format!("sidecar process {pid} exited"),
+        };
+        let snapshot = SidecarStateSnapshot {
+            phase,
+            pid: None,
+            message: Some(message.clone()),
+            started_at: Some(started_at.clone()),
+            stopped_at: Some(now_string()),
+            exit_code,
+        };
+        if let Ok(mut state_guard) = state.lock() {
+            *state_guard = snapshot.clone();
+        }
+        SidecarManager::emit_log(&app, "system", message);
+        let _ = app.emit("sidecar://state", snapshot.clone());
+        tray::sync_tray_state(&app, &snapshot.phase);
+        return;
+    });
 }
 
 #[tauri::command]

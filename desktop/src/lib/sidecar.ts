@@ -11,6 +11,7 @@ export type SidecarState = {
   message?: string;
   startedAt?: string;
   stoppedAt?: string;
+  exitCode?: number;
 };
 
 export type LogLine = {
