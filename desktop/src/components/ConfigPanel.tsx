@@ -1,4 +1,4 @@
-import { FolderOpen, Wand2 } from "lucide-react";
+import { ExternalLink, FolderOpen, Wand2 } from "lucide-react";
 import type { DesktopSettings } from "../lib/storage";
 
 export function ConfigPanel({
@@ -8,6 +8,10 @@ export function ConfigPanel({
   onSelectBinary,
   onSelectConfig,
   onDiscover,
+  onOpenManagement,
+  onRevealBinary,
+  onRevealConfig,
+  onOpenAppData,
 }: {
   settings: DesktopSettings;
   onChange: (settings: DesktopSettings) => void;
@@ -15,6 +19,10 @@ export function ConfigPanel({
   onSelectBinary: () => void;
   onSelectConfig: () => void;
   onDiscover: () => void;
+  onOpenManagement: () => void;
+  onRevealBinary: () => void;
+  onRevealConfig: () => void;
+  onOpenAppData: () => void;
 }) {
   return (
     <section className="panel" id="settings">
@@ -54,6 +62,12 @@ export function ConfigPanel({
       <div className="toggle-grid">
         <label><input type="checkbox" checked={settings.localModel} onChange={(event) => onChange({ ...settings, localModel: event.target.checked })} /> Local model</label>
         <label><input type="checkbox" checked={settings.autoStart} onChange={(event) => onChange({ ...settings, autoStart: event.target.checked })} /> Auto start</label>
+      </div>
+      <div className="panel-actions recovery-actions">
+        <button type="button" onClick={onOpenManagement}><ExternalLink size={15} /> Open UI</button>
+        <button type="button" onClick={onRevealBinary}><FolderOpen size={15} /> Reveal binary</button>
+        <button type="button" onClick={onRevealConfig}><FolderOpen size={15} /> Reveal config</button>
+        <button type="button" onClick={onOpenAppData}><FolderOpen size={15} /> App data</button>
       </div>
     </section>
   );

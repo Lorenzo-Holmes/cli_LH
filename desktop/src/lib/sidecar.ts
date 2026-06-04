@@ -151,6 +151,29 @@ export async function validateLaunchProfile(settings: DesktopSettings): Promise<
   return invoke<PreflightReport>("validate_launch_profile", { settings: normalizeSettings(settings) });
 }
 
+export async function openManagementPage(settings: DesktopSettings): Promise<void> {
+  if (!inTauri()) {
+    window.open(`${normalizeSettings(settings).baseUrl}/management`, "_blank", "noopener,noreferrer");
+    return;
+  }
+  return invoke<void>("open_management_page", { settings: normalizeSettings(settings) });
+}
+
+export async function revealConfigPath(settings: DesktopSettings): Promise<void> {
+  if (!inTauri()) return;
+  return invoke<void>("reveal_config_path", { settings: normalizeSettings(settings) });
+}
+
+export async function revealBinaryPath(settings: DesktopSettings): Promise<void> {
+  if (!inTauri()) return;
+  return invoke<void>("reveal_binary_path", { settings: normalizeSettings(settings) });
+}
+
+export async function openAppDataDir(): Promise<void> {
+  if (!inTauri()) return;
+  return invoke<void>("open_app_data_dir");
+}
+
 export async function subscribeSidecarEvents(handlers: {
   onState: (state: SidecarState) => void;
   onLog: (line: LogLine) => void;

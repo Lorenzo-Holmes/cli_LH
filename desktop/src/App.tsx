@@ -5,7 +5,7 @@ import { LogPanel } from "./components/LogPanel";
 import { PreflightPanel } from "./components/PreflightPanel";
 import { Sidebar } from "./components/Sidebar";
 import { StatusPanel } from "./components/StatusPanel";
-import { clearLogs, discoverLaunchProfile, getSettings, getSidecarState, restartSidecar, saveSettings, selectBinaryPath, selectConfigPath, startSidecar, stopSidecar, subscribeSidecarEvents, validateLaunchProfile, type LogLine, type PreflightReport, type SidecarState } from "./lib/sidecar";
+import { clearLogs, discoverLaunchProfile, getSettings, getSidecarState, openAppDataDir, openManagementPage, restartSidecar, revealBinaryPath, revealConfigPath, saveSettings, selectBinaryPath, selectConfigPath, startSidecar, stopSidecar, subscribeSidecarEvents, validateLaunchProfile, type LogLine, type PreflightReport, type SidecarState } from "./lib/sidecar";
 import { probeSidecar, type ProbeResult } from "./lib/status";
 import { defaultSettings, normalizeSettings, type DesktopSettings } from "./lib/storage";
 
@@ -106,6 +106,16 @@ export default function App() {
     }
   }
 
+  async function runUtilityAction(action: () => Promise<void>, successMessage: string) {
+    try {
+      await action();
+      pushLog({ source: "system", message: successMessage, timestamp: new Date().toISOString() });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      pushLog({ source: "system", message, timestamp: new Date().toISOString() });
+    }
+  }
+
   return (
     <div className="app-shell">
       <Sidebar phase={state.phase} />
@@ -133,6 +143,10 @@ export default function App() {
             onSelectBinary={() => void chooseBinaryPath()}
             onSelectConfig={() => void chooseConfigPath()}
             onDiscover={() => void autoDiscoverProfile()}
+            onOpenManagement={() => void runUtilityAction(() => openManagementPage(normalizedSettings), "Opened management UI")}
+            onRevealBinary={() => void runUtilityAction(() => revealBinaryPath(normalizedSettings), "Revealed binary path")}
+            onRevealConfig={() => void runUtilityAction(() => revealConfigPath(normalizedSettings), "Revealed config path")}
+            onOpenAppData={() => void runUtilityAction(openAppDataDir, "Opened app data directory")}
             onSave={() => void runAction(async () => {
               const saved = await saveSettings(normalizedSettings);
               setSettings(saved);

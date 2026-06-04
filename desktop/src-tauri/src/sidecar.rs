@@ -9,6 +9,7 @@ use std::{
 };
 use crate::tray;
 use tauri::{AppHandle, Emitter, Manager, State};
+use tauri_plugin_opener::OpenerExt;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -303,6 +304,30 @@ pub fn validate_launch_profile(settings: DesktopSettings) -> Result<PreflightRep
     Ok(build_preflight_report(settings))
 }
 
+#[tauri::command]
+pub fn open_management_page(app: AppHandle, settings: DesktopSettings) -> Result<(), String> {
+    let settings = normalize_settings(settings);
+    let url = format!("{}/management", settings.base_url.trim_end_matches('/'));
+    app.opener().open_url(url, None::<&str>).map_err(|err| format!("open management page: {err}"))
+}
+
+#[tauri::command]
+pub fn reveal_config_path(app: AppHandle, settings: DesktopSettings) -> Result<(), String> {
+    reveal_path(&app, &settings.config_path, "config.yaml")
+}
+
+#[tauri::command]
+pub fn reveal_binary_path(app: AppHandle, settings: DesktopSettings) -> Result<(), String> {
+    reveal_path(&app, &settings.binary_path, "cli_LH binary")
+}
+
+#[tauri::command]
+pub fn open_app_data_dir(app: AppHandle) -> Result<(), String> {
+    let dir = app.path().app_config_dir().map_err(|err| format!("resolve app config dir: {err}"))?;
+    fs::create_dir_all(&dir).map_err(|err| format!("create app config dir: {err}"))?;
+    app.opener().open_path(dir.to_string_lossy().to_string(), None::<&str>).map_err(|err| format!("open app data dir: {err}"))
+}
+
 fn normalize_settings(mut settings: DesktopSettings) -> DesktopSettings {
     settings.binary_path = settings.binary_path.trim().to_string();
     settings.config_path = settings.config_path.trim().to_string();
@@ -311,6 +336,18 @@ fn normalize_settings(mut settings: DesktopSettings) -> DesktopSettings {
         settings.base_url = "http://127.0.0.1:8317".to_string();
     }
     settings
+}
+
+fn reveal_path(app: &AppHandle, path: &str, label: &str) -> Result<(), String> {
+    let trimmed = path.trim();
+    if trimmed.is_empty() {
+        return Err(format!("{label} path is required"));
+    }
+    let path = PathBuf::from(trimmed);
+    if !path.exists() {
+        return Err(format!("{label} was not found at {trimmed}"));
+    }
+    app.opener().reveal_item_in_dir(path).map_err(|err| format!("reveal {label}: {err}"))
 }
 
 fn check_file_path(id: &str, label: &str, value: &str, missing_message: &str, missing_suggestion: &str) -> PreflightCheck {
