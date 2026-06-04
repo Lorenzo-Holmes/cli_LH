@@ -3,7 +3,7 @@ mod tray;
 
 use sidecar::{
     clear_logs, discover_launch_profile, get_settings, get_sidecar_state, restart_sidecar,
-    save_settings, start_sidecar, stop_sidecar, SidecarManager,
+    save_settings, start_sidecar, stop_sidecar, validate_launch_profile, SidecarManager,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -20,7 +20,8 @@ pub fn run() {
             stop_sidecar,
             restart_sidecar,
             clear_logs,
-            discover_launch_profile
+            discover_launch_profile,
+            validate_launch_profile
         ])
         .setup(|app| {
             tray::setup_tray(app)?;

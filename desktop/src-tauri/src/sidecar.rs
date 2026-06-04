@@ -61,6 +61,23 @@ pub struct LogLine {
     pub timestamp: String,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PreflightCheck {
+    pub id: String,
+    pub label: String,
+    pub severity: String,
+    pub message: String,
+    pub suggestion: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PreflightReport {
+    pub can_start: bool,
+    pub checks: Vec<PreflightCheck>,
+}
+
 pub struct SidecarManager {
     child: Mutex<Option<Child>>,
     state: Mutex<SidecarStateSnapshot>,
@@ -102,11 +119,13 @@ impl SidecarManager {
 
     pub fn start(&self, app: &AppHandle, settings: DesktopSettings) -> Result<SidecarStateSnapshot, String> {
         let settings = normalize_settings(settings);
-        if settings.binary_path.is_empty() {
-            return Err("cli_LH binary path is required".to_string());
-        }
-        if settings.config_path.is_empty() {
-            return Err("config.yaml path is required".to_string());
+        let preflight = build_preflight_report(settings.clone());
+        if !preflight.can_start {
+            let message = preflight.checks.iter()
+                .find(|check| check.severity == "error")
+                .map(|check| check.message.clone())
+                .unwrap_or_else(|| "launch profile is not ready".to_string());
+            return Err(message);
         }
 
         {
@@ -279,6 +298,11 @@ pub fn discover_launch_profile(app: AppHandle) -> Result<DesktopSettings, String
     Ok(normalize_settings(settings))
 }
 
+#[tauri::command]
+pub fn validate_launch_profile(settings: DesktopSettings) -> Result<PreflightReport, String> {
+    Ok(build_preflight_report(settings))
+}
+
 fn normalize_settings(mut settings: DesktopSettings) -> DesktopSettings {
     settings.binary_path = settings.binary_path.trim().to_string();
     settings.config_path = settings.config_path.trim().to_string();
@@ -287,6 +311,138 @@ fn normalize_settings(mut settings: DesktopSettings) -> DesktopSettings {
         settings.base_url = "http://127.0.0.1:8317".to_string();
     }
     settings
+}
+
+fn check_file_path(id: &str, label: &str, value: &str, missing_message: &str, missing_suggestion: &str) -> PreflightCheck {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return PreflightCheck {
+            id: id.to_string(),
+            label: label.to_string(),
+            severity: "error".to_string(),
+            message: missing_message.to_string(),
+            suggestion: Some(missing_suggestion.to_string()),
+        };
+    }
+
+    let path = PathBuf::from(trimmed);
+    if path.is_file() {
+        return PreflightCheck {
+            id: id.to_string(),
+            label: label.to_string(),
+            severity: "ok".to_string(),
+            message: format!("{label} exists"),
+            suggestion: None,
+        };
+    }
+
+    PreflightCheck {
+        id: id.to_string(),
+        label: label.to_string(),
+        severity: "error".to_string(),
+        message: format!("{label} was not found at {trimmed}"),
+        suggestion: Some(format!("Choose an existing {label} path or run Auto-detect.")),
+    }
+}
+
+fn parse_base_url_host_port(base_url: &str) -> Result<(String, u16), String> {
+    let trimmed = base_url.trim().trim_end_matches('/');
+    let without_scheme = trimmed.strip_prefix("http://").or_else(|| trimmed.strip_prefix("https://"))
+        .ok_or_else(|| "Base URL must start with http:// or https://".to_string())?;
+    let authority = without_scheme.split('/').next().unwrap_or_default();
+    let authority = authority.rsplit('@').next().unwrap_or(authority);
+
+    let (host, port_text) = if authority.starts_with('[') {
+        let end = authority.find(']').ok_or_else(|| "IPv6 host is missing closing bracket".to_string())?;
+        let host = authority[1..end].to_string();
+        let rest = &authority[end + 1..];
+        let port = rest.strip_prefix(':').ok_or_else(|| "Base URL must include an explicit port".to_string())?;
+        (host, port.to_string())
+    } else {
+        let (host, port) = authority.rsplit_once(':').ok_or_else(|| "Base URL must include an explicit port".to_string())?;
+        (host.to_string(), port.to_string())
+    };
+
+    if host.trim().is_empty() {
+        return Err("Base URL host is empty".to_string());
+    }
+    let port = port_text.parse::<u16>().map_err(|_| "Base URL port must be between 1 and 65535".to_string())?;
+    Ok((host, port))
+}
+
+fn check_base_url(base_url: &str) -> PreflightCheck {
+    match parse_base_url_host_port(base_url) {
+        Ok((host, port)) => PreflightCheck {
+            id: "baseUrl".to_string(),
+            label: "Base URL".to_string(),
+            severity: "ok".to_string(),
+            message: format!("Base URL points to {host}:{port}"),
+            suggestion: None,
+        },
+        Err(err) => PreflightCheck {
+            id: "baseUrl".to_string(),
+            label: "Base URL".to_string(),
+            severity: "error".to_string(),
+            message: err,
+            suggestion: Some("Use a URL such as http://127.0.0.1:8317.".to_string()),
+        },
+    }
+}
+
+fn check_port_available(base_url: &str) -> PreflightCheck {
+    let (host, port) = match parse_base_url_host_port(base_url) {
+        Ok(parsed) => parsed,
+        Err(err) => {
+            return PreflightCheck {
+                id: "port".to_string(),
+                label: "Port".to_string(),
+                severity: "warning".to_string(),
+                message: format!("Port check skipped: {err}"),
+                suggestion: Some("Fix the Base URL before starting the sidecar.".to_string()),
+            };
+        }
+    };
+
+    match std::net::TcpStream::connect((host.as_str(), port)) {
+        Ok(_) => PreflightCheck {
+            id: "port".to_string(),
+            label: "Port".to_string(),
+            severity: "warning".to_string(),
+            message: format!("{host}:{port} is already accepting connections"),
+            suggestion: Some("If cli_LH is already running, use Probe now. Otherwise stop the process using this port or change the configured port.".to_string()),
+        },
+        Err(_) => PreflightCheck {
+            id: "port".to_string(),
+            label: "Port".to_string(),
+            severity: "ok".to_string(),
+            message: format!("{host}:{port} appears available"),
+            suggestion: None,
+        },
+    }
+}
+
+fn build_preflight_report(settings: DesktopSettings) -> PreflightReport {
+    let normalized = normalize_settings(settings);
+    let checks = vec![
+        check_file_path(
+            "binaryPath",
+            "Binary",
+            &normalized.binary_path,
+            "cli_LH binary path is required",
+            "Choose cli_LH.exe or run Auto-detect.",
+        ),
+        check_file_path(
+            "configPath",
+            "Config",
+            &normalized.config_path,
+            "config.yaml path is required",
+            "Choose config.yaml or run Auto-detect.",
+        ),
+        check_base_url(&normalized.base_url),
+        check_port_available(&normalized.base_url),
+    ];
+    let can_start = checks.iter().all(|check| check.severity != "error");
+    PreflightReport { can_start, checks }
 }
 
 fn settings_path(app: &AppHandle) -> Result<PathBuf, String> {

@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
-import { defaultSettings, type DesktopSettings } from "./storage";
+import { defaultSettings, normalizeSettings, type DesktopSettings } from "./storage";
 
 export type SidecarPhase = "idle" | "starting" | "ready" | "stopping" | "stopped" | "error";
 
@@ -17,6 +17,21 @@ export type LogLine = {
   source: "stdout" | "stderr" | "system";
   message: string;
   timestamp: string;
+};
+
+export type PreflightSeverity = "ok" | "warning" | "error";
+
+export type PreflightCheck = {
+  id: string;
+  label: string;
+  severity: PreflightSeverity;
+  message: string;
+  suggestion?: string;
+};
+
+export type PreflightReport = {
+  canStart: boolean;
+  checks: PreflightCheck[];
 };
 
 function inTauri(): boolean {
@@ -103,6 +118,37 @@ export async function discoverLaunchProfile(): Promise<DesktopSettings> {
     return defaultSettings;
   }
   return invoke<DesktopSettings>("discover_launch_profile");
+}
+
+export async function validateLaunchProfile(settings: DesktopSettings): Promise<PreflightReport> {
+  if (!inTauri()) {
+    const normalized = normalizeSettings(settings);
+    const checks: PreflightCheck[] = [
+      {
+        id: "binaryPath",
+        label: "Binary",
+        severity: normalized.binaryPath ? "warning" : "error",
+        message: normalized.binaryPath ? "Browser preview cannot verify local binary paths" : "cli_LH binary path is required",
+        suggestion: "Run inside Tauri to verify the file path.",
+      },
+      {
+        id: "configPath",
+        label: "Config",
+        severity: normalized.configPath ? "warning" : "error",
+        message: normalized.configPath ? "Browser preview cannot verify local config paths" : "config.yaml path is required",
+        suggestion: "Run inside Tauri to verify the file path.",
+      },
+      {
+        id: "baseUrl",
+        label: "Base URL",
+        severity: normalized.baseUrl.startsWith("http") ? "ok" : "error",
+        message: normalized.baseUrl.startsWith("http") ? `Base URL is ${normalized.baseUrl}` : "Base URL must start with http:// or https://",
+        suggestion: "Use a URL such as http://127.0.0.1:8317.",
+      },
+    ];
+    return { canStart: checks.every((check) => check.severity !== "error"), checks };
+  }
+  return invoke<PreflightReport>("validate_launch_profile", { settings: normalizeSettings(settings) });
 }
 
 export async function subscribeSidecarEvents(handlers: {
