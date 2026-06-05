@@ -3,8 +3,8 @@ package api
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/buildinfo"
+	"github.com/gin-gonic/gin"
 )
 
 // SidecarRuntimeInfo holds runtime metadata for the sidecar status endpoint.
@@ -37,13 +37,27 @@ type sidecarProviderSummary struct {
 	HomeEnabled                bool `json:"homeEnabled"`
 }
 
+type sidecarManagementSummary struct {
+	Available               bool `json:"available"`
+	LocalPasswordAvailable  bool `json:"localPasswordAvailable"`
+	RemoteManagementAllowed bool `json:"remoteManagementAllowed"`
+	ControlPanelEnabled     bool `json:"controlPanelEnabled"`
+	AutoUpdatePanelEnabled  bool `json:"autoUpdatePanelEnabled"`
+	UsageStatisticsEnabled  bool `json:"usageStatisticsEnabled"`
+	RequestLogEnabled       bool `json:"requestLogEnabled"`
+	LoggingToFileEnabled    bool `json:"loggingToFileEnabled"`
+	WebsocketAuthEnabled    bool `json:"websocketAuthEnabled"`
+	TLSEnabled              bool `json:"tlsEnabled"`
+}
+
 type sidecarStatusResponse struct {
-	Status    string                 `json:"status"`
-	Service   string                 `json:"service"`
-	Build     sidecarBuildInfo       `json:"build"`
-	Server    sidecarServerInfo      `json:"server"`
-	Runtime   SidecarRuntimeInfo     `json:"runtime"`
-	Providers sidecarProviderSummary `json:"providers"`
+	Status     string                   `json:"status"`
+	Service    string                   `json:"service"`
+	Build      sidecarBuildInfo         `json:"build"`
+	Server     sidecarServerInfo        `json:"server"`
+	Runtime    SidecarRuntimeInfo       `json:"runtime"`
+	Providers  sidecarProviderSummary   `json:"providers"`
+	Management sidecarManagementSummary `json:"management"`
 }
 
 func (s *Server) sidecarStatusHandler(c *gin.Context) {
@@ -78,6 +92,19 @@ func (s *Server) sidecarStatusHandler(c *gin.Context) {
 			VertexAPIKeys:              len(s.cfg.VertexCompatAPIKey),
 			OAuthModelAliases:          len(s.cfg.OAuthModelAlias),
 			HomeEnabled:                s.cfg.Home.Enabled,
+		}
+		hasManagementSecret := s.cfg.RemoteManagement.SecretKey != "" || s.localPassword != ""
+		resp.Management = sidecarManagementSummary{
+			Available:               hasManagementSecret,
+			LocalPasswordAvailable:  s.localPassword != "",
+			RemoteManagementAllowed: s.cfg.RemoteManagement.AllowRemote,
+			ControlPanelEnabled:     !s.cfg.RemoteManagement.DisableControlPanel,
+			AutoUpdatePanelEnabled:  !s.cfg.RemoteManagement.DisableAutoUpdatePanel,
+			UsageStatisticsEnabled:  s.cfg.UsageStatisticsEnabled,
+			RequestLogEnabled:       s.cfg.RequestLog,
+			LoggingToFileEnabled:    s.cfg.LoggingToFile,
+			WebsocketAuthEnabled:    s.cfg.WebsocketAuth,
+			TLSEnabled:              s.cfg.TLS.Enable,
 		}
 	}
 

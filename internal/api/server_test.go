@@ -615,7 +615,7 @@ func TestStatuszContractFieldShape(t *testing.T) {
 		t.Fatalf("failed to parse response JSON: %v; body=%s", err, w.Body.String())
 	}
 
-	for _, key := range []string{"status", "service", "build", "server", "runtime", "providers"} {
+	for _, key := range []string{"status", "service", "build", "server", "runtime", "providers", "management"} {
 		if _, ok := payload[key]; !ok {
 			t.Fatalf("status payload missing top-level key %q: %s", key, w.Body.String())
 		}
@@ -659,6 +659,75 @@ func TestStatuszContractFieldShape(t *testing.T) {
 			t.Fatalf("providers field missing key %q: %#v", key, providerInfo)
 		}
 	}
+
+	managementInfo, ok := payload["management"].(map[string]any)
+	if !ok {
+		t.Fatalf("management field = %#v, want object", payload["management"])
+	}
+	for _, key := range []string{"available", "localPasswordAvailable", "remoteManagementAllowed", "controlPanelEnabled", "autoUpdatePanelEnabled", "usageStatisticsEnabled", "requestLogEnabled", "loggingToFileEnabled", "websocketAuthEnabled", "tlsEnabled"} {
+		if _, ok := managementInfo[key]; !ok {
+			t.Fatalf("management field missing key %q: %#v", key, managementInfo)
+		}
+	}
+}
+
+func TestStatuszIncludesManagementCapabilitySummary(t *testing.T) {
+	server := newTestServer(t)
+	server.localPassword = "local-management-password"
+	server.cfg.RemoteManagement.AllowRemote = true
+	server.cfg.RemoteManagement.SecretKey = "hashed-or-plain-secret"
+	server.cfg.RemoteManagement.DisableControlPanel = false
+	server.cfg.RemoteManagement.DisableAutoUpdatePanel = true
+	server.cfg.UsageStatisticsEnabled = true
+	server.cfg.RequestLog = true
+	server.cfg.LoggingToFile = true
+	server.cfg.WebsocketAuth = true
+	server.cfg.TLS.Enable = true
+
+	req := httptest.NewRequest(http.MethodGet, "/statusz", nil)
+	w := httptest.NewRecorder()
+	server.engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("unexpected status code: got %d want %d; body=%s", w.Code, http.StatusOK, w.Body.String())
+	}
+
+	var resp sidecarStatusResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to parse response JSON: %v; body=%s", err, w.Body.String())
+	}
+
+	management := resp.Management
+	if !management.Available {
+		t.Fatalf("management.available = false, want true")
+	}
+	if !management.LocalPasswordAvailable {
+		t.Fatalf("management.localPasswordAvailable = false, want true")
+	}
+	if !management.RemoteManagementAllowed {
+		t.Fatalf("management.remoteManagementAllowed = false, want true")
+	}
+	if !management.ControlPanelEnabled {
+		t.Fatalf("management.controlPanelEnabled = false, want true")
+	}
+	if management.AutoUpdatePanelEnabled {
+		t.Fatalf("management.autoUpdatePanelEnabled = true, want false")
+	}
+	if !management.UsageStatisticsEnabled {
+		t.Fatalf("management.usageStatisticsEnabled = false, want true")
+	}
+	if !management.RequestLogEnabled {
+		t.Fatalf("management.requestLogEnabled = false, want true")
+	}
+	if !management.LoggingToFileEnabled {
+		t.Fatalf("management.loggingToFileEnabled = false, want true")
+	}
+	if !management.WebsocketAuthEnabled {
+		t.Fatalf("management.websocketAuthEnabled = false, want true")
+	}
+	if !management.TLSEnabled {
+		t.Fatalf("management.tlsEnabled = false, want true")
+	}
 }
 
 func TestStatuszHeadHasNoBody(t *testing.T) {
@@ -679,6 +748,8 @@ func TestStatuszHeadHasNoBody(t *testing.T) {
 func TestStatuszOmitsSecrets(t *testing.T) {
 	server := newTestServer(t)
 	server.cfg.RemoteManagement.SecretKey = "management-secret-value"
+	server.localPassword = "local-password-secret-value"
+	server.cfg.RemoteManagement.PanelGitHubRepository = "https://example.test/private-panel-repository-secret"
 	server.cfg.APIKeys = []string{"api-secret-value"}
 	server.cfg.GeminiKey = []proxyconfig.GeminiKey{{APIKey: "gemini-secret-value"}}
 	server.cfg.CodexKey = []proxyconfig.CodexKey{{APIKey: "codex-secret-value"}}
@@ -692,7 +763,7 @@ func TestStatuszOmitsSecrets(t *testing.T) {
 		t.Fatalf("unexpected status code: got %d want %d; body=%s", w.Code, http.StatusOK, w.Body.String())
 	}
 	body := w.Body.String()
-	for _, secret := range []string{"management-secret-value", "api-secret-value", "gemini-secret-value", "codex-secret-value", "claude-secret-value"} {
+	for _, secret := range []string{"management-secret-value", "local-password-secret-value", "private-panel-repository-secret", "api-secret-value", "gemini-secret-value", "codex-secret-value", "claude-secret-value"} {
 		if strings.Contains(body, secret) {
 			t.Fatalf("status response leaked secret %q: %s", secret, body)
 		}
