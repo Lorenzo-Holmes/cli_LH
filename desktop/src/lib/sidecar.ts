@@ -235,5 +235,12 @@ export async function subscribeSidecarEvents(handlers: {
   const unlistenStdout = await listen<LogLine>("sidecar://stdout", (event) => handlers.onLog(event.payload));
   const unlistenStderr = await listen<LogLine>("sidecar://stderr", (event) => handlers.onLog(event.payload));
   const unlistenError = await listen<LogLine>("sidecar://error", (event) => handlers.onLog(event.payload));
-  return [unlistenState, unlistenStdout, unlistenStderr, unlistenError];
+  const unlistenTrayAction = await listen<string>("sidecar://tray-action", (event) => {
+    handlers.onLog({
+      source: "system",
+      message: `Tray action ignored: ${event.payload}`,
+      timestamp: new Date().toISOString(),
+    });
+  });
+  return [unlistenState, unlistenStdout, unlistenStderr, unlistenError, unlistenTrayAction];
 }
