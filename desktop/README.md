@@ -2,6 +2,8 @@
 
 First-party reference desktop shell for controlling a local `cli_LH` sidecar.
 
+Packaging and release guidance is documented in [`PACKAGING.md`](./PACKAGING.md).
+
 ## Responsibilities
 
 - React renders the control cockpit.
