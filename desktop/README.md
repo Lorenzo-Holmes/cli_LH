@@ -115,6 +115,14 @@ The report includes:
 
 The report intentionally excludes API keys, OAuth tokens, management passwords, request bodies, prompts, responses, auth files, and full config contents. This matters for beginners because it gives them a useful support file without teaching unsafe habits such as sharing secrets or whole configuration files.
 
+## Safe Config Overview Panel
+
+The **Safe Config Overview** panel summarizes configuration facts that are safe for beginners to inspect.
+
+It shows only file names, counts, booleans, and safe runtime facts from the current desktop state and `/statusz`. It does not parse or display full `config.yaml`, API keys, OAuth tokens, management passwords, auth files, request bodies, prompts, or responses.
+
+The panel warns when the Base URL is not local-only, setup paths are missing, remote management is enabled, or request/file logging may require extra care before sharing logs.
+
 ## Responsibilities
 
 - React renders the control cockpit.
