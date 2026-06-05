@@ -17,8 +17,7 @@ pub fn setup_tray(app: &mut App) -> tauri::Result<()> {
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show, &open_ui, &open_app_data, &start, &stop, &restart, &quit])?;
 
-    TrayIconBuilder::new()
-        .id(TRAY_ID)
+    TrayIconBuilder::with_id(TRAY_ID)
         .menu(&menu)
         .tooltip("cli_LH Cockpit: idle")
         .show_menu_on_left_click(false)

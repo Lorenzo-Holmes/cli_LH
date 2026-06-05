@@ -55,6 +55,8 @@ npm run tauri:check
 npm run tauri dev
 ```
 
+The Windows desktop workspace has been validated locally with Rust/Cargo by running `npm run tauri:check`, `npm run typecheck`, and `npm run build`.
+
 Pull requests that touch `desktop/**` also run `.github/workflows/desktop-check.yml`, which installs Node.js, Rust, Linux Tauri system dependencies, runs frontend checks, and runs `npm run tauri:check` in CI.
 
 ## Native sidecar manager

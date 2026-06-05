@@ -53,7 +53,13 @@ The launch profile remains user-editable, so development and packaged builds can
 
 ## Current Validation Status
 
-Local frontend validation is available with Node.js. Full native validation requires Rust/Cargo. If Rust/Cargo are unavailable locally, use `.github/workflows/desktop-check.yml` as the authoritative native validation path until the local environment is installed.
+Local Windows validation has passed with Node.js, Rust, Cargo, WebView2, and MSVC Build Tools installed:
+
+- `npm run tauri:check`
+- `npm run typecheck`
+- `npm run build`
+
+If Rust/Cargo are unavailable in another local environment, use `.github/workflows/desktop-check.yml` as the authoritative native validation path until that environment is installed.
 
 ## Future Improvements
 
