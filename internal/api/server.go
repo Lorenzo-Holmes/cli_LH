@@ -22,7 +22,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/access"
 	managementHandlers "github.com/Lorenzo-Holmes/cli_LH/v7/internal/api/handlers/management"
 	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/api/middleware"
@@ -42,6 +41,7 @@ import (
 	"github.com/Lorenzo-Holmes/cli_LH/v7/sdk/api/handlers/openai"
 	sdkAuth "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/auth"
 	"github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/auth"
+	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/http2"
 	"gopkg.in/yaml.v3"

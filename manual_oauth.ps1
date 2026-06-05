@@ -111,11 +111,11 @@ if (-not $Step2) {
     $uri = [System.Uri]$callbackUrl
     $queryParams = [System.Web.HttpUtility]::ParseQueryString($uri.Query)
     $code = $queryParams["code"]
-    $error = $queryParams["error"]
+    $oauthError = $queryParams["error"]
     $errorDescription = $queryParams["error_description"]
 
-    if ($error) {
-        Write-Host "ERROR: OAuth error - $error : $errorDescription" -ForegroundColor Red
+    if ($oauthError) {
+        Write-Host "ERROR: OAuth error - $oauthError : $errorDescription" -ForegroundColor Red
         exit 1
     }
 

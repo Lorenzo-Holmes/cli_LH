@@ -16,7 +16,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/joho/godotenv"
 	configaccess "github.com/Lorenzo-Holmes/cli_LH/v7/internal/access/config_access"
 	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/api"
 	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/buildinfo"
@@ -34,6 +33,7 @@ import (
 	"github.com/Lorenzo-Holmes/cli_LH/v7/internal/util"
 	sdkAuth "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/auth"
 	coreauth "github.com/Lorenzo-Holmes/cli_LH/v7/sdk/cliproxy/auth"
+	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
 )
 
