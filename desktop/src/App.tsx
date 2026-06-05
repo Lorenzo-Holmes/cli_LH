@@ -14,6 +14,7 @@ import { RuntimeSummaryPanel } from "./components/RuntimeSummaryPanel";
 import { SetupWizard } from "./components/SetupWizard";
 import { Sidebar } from "./components/Sidebar";
 import { StatusPanel } from "./components/StatusPanel";
+import { TroubleshootingGuidePanel } from "./components/TroubleshootingGuidePanel";
 import { clearLogs, deleteProfile, discoverLaunchProfile, exportLogs, getSettings, getSidecarState, listProfiles, openAppDataDir, openManagementPage, recommendAvailablePort, renameProfile, restartSidecar, revealBinaryPath, revealConfigPath, saveProfile, saveSettings, selectBinaryPath, selectConfigPath, startSidecar, stopSidecar, subscribeSidecarEvents, validateLaunchProfile, type LaunchProfile, type LogLine, type PreflightReport, type SidecarState } from "./lib/sidecar";
 import { loadManagementSummary, type ManagementSessionState, type ManagementSummary } from "./lib/management";
 import { probeSidecar, type ProbeResult } from "./lib/status";
@@ -268,6 +269,17 @@ export default function App() {
             onStart={() => void runAction(() => startSidecar(normalizedSettings))}
             onProbe={() => void refreshProbe()}
             onOpenManagement={() => void runUtilityAction(() => openManagementPage(normalizedSettings), "Opened management UI")}
+          />
+          <TroubleshootingGuidePanel
+            settings={normalizedSettings}
+            state={state}
+            preflight={preflight}
+            probe={probe}
+            onSetup={() => setWizardOpen(true)}
+            onRecheck={() => {
+              void refreshPreflight();
+              void refreshProbe();
+            }}
           />
           <StatusPanel probe={probe} />
           <ProviderSummaryPanel probe={probe} />

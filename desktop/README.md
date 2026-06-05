@@ -47,6 +47,20 @@ The cockpit includes a small **Next actions** panel near the top of the dashboar
 
 It then recommends the next safe step, such as opening the setup wizard, fixing preflight checks, starting the sidecar, probing readiness, opening management, or inspecting logs. This teaches the normal operating loop without automatically changing settings or exposing secrets.
 
+## Troubleshooting Guide Panel
+
+The **Troubleshooting** panel is the beginner recovery checklist. It answers: “What should I check first when it does not work?”
+
+The checklist is ordered from safest and most common to more specific:
+
+1. Confirm the `cli_LH` binary and `config.yaml` paths.
+2. Fix blocking preflight errors.
+3. Check the Base URL and port if probes fail.
+4. Read and export logs if the sidecar exits or gets stuck.
+5. Verify management availability and clear the in-memory key session if needed.
+
+The panel is intentionally guidance-only. It does not automatically rewrite settings, read secrets, inspect request bodies, or display log file contents. This is safer for beginners because it teaches one check at a time and avoids hidden changes.
+
 ## Management Session Panel
 
 The **Management Session** panel is an intentionally small read-only bridge into authenticated management endpoints.

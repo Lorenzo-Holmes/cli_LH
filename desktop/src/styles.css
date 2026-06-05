@@ -104,6 +104,21 @@ select { border: 1px solid var(--line); background: rgba(4,9,10,0.92); color: #e
 .action-warning > svg { color: var(--amber); }
 .action-ready { border-color: rgba(125,255,157,0.32); }
 .action-ready > svg { color: var(--green); }
+.troubleshooting-panel { min-height: 360px; }
+.troubleshooting-actions { margin-top: 12px; }
+.troubleshooting-list { display: grid; gap: 12px; }
+.troubleshooting-card { border: 1px solid var(--line); border-radius: 18px; padding: 14px; display: grid; grid-template-columns: auto 1fr; gap: 12px; background: rgba(255,255,255,0.035); }
+.troubleshooting-card > svg { width: 22px; color: var(--cyan); margin-top: 2px; }
+.troubleshooting-card strong { display: block; margin-bottom: 10px; }
+.troubleshooting-card dl { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 8px 10px; margin: 0; }
+.troubleshooting-card dt { color: var(--text-muted); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+.troubleshooting-card dd { margin: 0; color: #cde5df; line-height: 1.45; }
+.troubleshoot-ok { border-color: rgba(125,255,157,0.28); }
+.troubleshoot-ok > svg { color: var(--green); }
+.troubleshoot-warning { border-color: rgba(255,189,74,0.35); }
+.troubleshoot-warning > svg { color: var(--amber); }
+.troubleshoot-critical { border-color: rgba(255,95,109,0.35); }
+.troubleshoot-critical > svg { color: var(--red); }
 .management-session-panel { min-height: 320px; }
 .management-login-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; }
 .management-safe-grid { margin-top: 16px; }
