@@ -1,0 +1,69 @@
+name: desktop-sidecar-check
+
+on:
+  pull_request:
+    paths:
+      - 'cmd/**'
+      - 'internal/**'
+      - 'sdk/**'
+      - 'desktop/scripts/prepare-sidecar.mjs'
+      - 'desktop/scripts/smoke-sidecar.ps1'
+      - 'desktop/package.json'
+      - 'desktop/package-lock.json'
+      - 'config.example.yaml'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/desktop-sidecar-check.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'cmd/**'
+      - 'internal/**'
+      - 'sdk/**'
+      - 'desktop/scripts/prepare-sidecar.mjs'
+      - 'desktop/scripts/smoke-sidecar.ps1'
+      - 'desktop/package.json'
+      - 'desktop/package-lock.json'
+      - 'config.example.yaml'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/desktop-sidecar-check.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-sidecar-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-sidecar-contract:
+    name: Windows sidecar contract
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install desktop dependencies
+        working-directory: desktop
+        run: npm ci
+
+      - name: Prepare Go sidecar
+        run: npm --prefix desktop run prepare:sidecar
+
+      - name: Smoke-test sidecar contract
+        run: npm --prefix desktop run smoke:sidecar

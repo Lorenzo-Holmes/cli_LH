@@ -34,6 +34,9 @@ This document defines the packaging path for the `cli_LH` desktop cockpit withou
   - `.github/workflows/desktop-release.yml`
   - Runs on `workflow_dispatch` and `v*` tags.
   - Produces unsigned Windows NSIS desktop bundle artifacts from `desktop/src-tauri/target/release/bundle/**`.
+- GitHub Actions validation layers:
+  - `.github/workflows/desktop-check.yml` validates the React/Tauri frontend and Rust backend on Linux when desktop files change.
+  - `.github/workflows/desktop-sidecar-check.yml` validates the Windows Go sidecar preparation and `/healthz` + `/statusz` contract when server, sidecar scripts, config template, or desktop package files change.
 
 ## Sidecar Contract
 
@@ -68,6 +71,11 @@ The launch profile remains user-editable, so development and packaged builds can
    - Confirm tray start/stop/restart/quit behavior.
 
 For CI-based packaging, run the `desktop-release` workflow manually or push a `v*` tag. The workflow installs Node.js, Go, and Rust, prepares the Go sidecar, runs frontend checks, builds the Tauri bundle, and uploads unsigned Windows NSIS artifacts.
+
+For pre-release CI confidence, check both desktop validation layers before creating a release tag:
+
+- `desktop-check` for frontend and Tauri backend compilation.
+- `desktop-sidecar-check` for Windows sidecar build and probe contract compatibility.
 
 ## Current Validation Status
 
