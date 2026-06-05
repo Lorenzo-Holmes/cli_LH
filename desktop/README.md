@@ -4,6 +4,18 @@ First-party reference desktop shell for controlling a local `cli_LH` sidecar.
 
 Packaging and release guidance is documented in [`PACKAGING.md`](./PACKAGING.md).
 
+## Beginner Mental Model
+
+The desktop app is split into three simple parts:
+
+- **React UI** is what the user sees: setup, buttons, status cards, logs, and diagnostics.
+- **Tauri/Rust backend** performs local desktop actions: save settings, start or stop the sidecar process, update the tray menu, and reveal files.
+- **Go cli_LH sidecar** is the proxy engine. It serves `/healthz`, `/statusz`, and the compatible model APIs.
+
+This separation keeps the proxy usable from the command line while still allowing a beginner-friendly desktop program.
+
+The complete product roadmap is documented in [`../docs/superpowers/specs/2026-06-05-complete-program-roadmap-design.md`](../docs/superpowers/specs/2026-06-05-complete-program-roadmap-design.md).
+
 ## Responsibilities
 
 - React renders the control cockpit.
@@ -31,6 +43,20 @@ npm run tauri build
 If `rustc` and `cargo` are not available, the frontend build can still be verified.
 
 On Windows, install Rust with `winget install Rustlang.Rustup`, then restart the terminal and run `rustc --version` and `cargo --version` before running Tauri checks.
+
+## Stage 1 Desktop Loop
+
+The first complete-program milestone is the local desktop loop:
+
+1. Configure the `cli_LH` binary and `config.yaml`.
+2. Run preflight checks before launch.
+3. Start, stop, and restart the sidecar.
+4. Probe `/healthz` and `/statusz`.
+5. Show beginner-friendly recovery suggestions.
+6. Keep useful tray actions available when the window is hidden.
+7. Export or inspect logs when troubleshooting.
+
+This milestone matters because users must be able to run and repair the program before advanced dashboard features are useful.
 
 ## Verification
 
