@@ -12,6 +12,7 @@ import { PreflightPanel } from "./components/PreflightPanel";
 import { ProfilePanel } from "./components/ProfilePanel";
 import { ProviderSummaryPanel } from "./components/ProviderSummaryPanel";
 import { RuntimeSummaryPanel } from "./components/RuntimeSummaryPanel";
+import { SafeConfigOverviewPanel } from "./components/SafeConfigOverviewPanel";
 import { SetupWizard } from "./components/SetupWizard";
 import { Sidebar } from "./components/Sidebar";
 import { StatusPanel } from "./components/StatusPanel";
@@ -308,6 +309,12 @@ export default function App() {
             onLogout={clearManagementSession}
           />
           <RuntimeSummaryPanel probe={probe} />
+          <SafeConfigOverviewPanel
+            settings={normalizedSettings}
+            state={state}
+            preflight={preflight}
+            probe={probe}
+          />
           <ActivityOverviewPanel state={state} probe={probe} />
           <DiagnosticsExportPanel
             settings={normalizedSettings}
