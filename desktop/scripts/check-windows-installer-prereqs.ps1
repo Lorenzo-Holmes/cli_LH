@@ -19,8 +19,22 @@ function Add-Check {
     }) | Out-Null
 }
 
+$nsisCandidates = @()
 $makensis = Get-Command makensis.exe -ErrorAction SilentlyContinue
-Add-Check -Name "NSIS makensis.exe" -Ok ([bool]$makensis) -Detail ($(if ($makensis) { $makensis.Source } else { "not found" })) -Suggestion "Install NSIS 3.x or ensure Tauri can download the NSIS toolchain."
+if ($makensis) {
+    $nsisCandidates += $makensis.Source
+}
+$nsisCandidates += @(
+    "$env:ProgramFiles\NSIS\makensis.exe",
+    "$env:ProgramFiles(x86)\NSIS\makensis.exe",
+    "$env:LOCALAPPDATA\tauri\NSIS\makensis.exe"
+)
+$tauriNsis = Get-ChildItem -Path "$env:LOCALAPPDATA\tauri\NSIS" -Filter makensis.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($tauriNsis) {
+    $nsisCandidates += $tauriNsis.FullName
+}
+$nsisPath = $nsisCandidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+Add-Check -Name "NSIS makensis.exe" -Ok ([bool]$nsisPath) -Detail ($(if ($nsisPath) { $nsisPath } else { "not found" })) -Suggestion "Install NSIS 3.x or run Tauri once so it can download its NSIS toolchain."
 
 $light = Get-Command light.exe -ErrorAction SilentlyContinue
 $candle = Get-Command candle.exe -ErrorAction SilentlyContinue

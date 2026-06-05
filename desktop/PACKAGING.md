@@ -29,6 +29,7 @@ This document defines the packaging path for the `cli_LH` desktop cockpit withou
   - `npm run check:installer-prereqs` on Windows before full installer bundling.
   - `node ./node_modules/@tauri-apps/cli/tauri.js build --no-bundle` for release executable validation.
   - `npm run tauri build` for installer bundling when platform prerequisites are available.
+  - Windows installer output: `desktop/src-tauri/target/release/bundle/nsis/cli_LH Cockpit_0.1.0_x64-setup.exe`.
 - GitHub Actions release packaging:
   - `.github/workflows/desktop-release.yml`
   - Runs on `workflow_dispatch` and `v*` tags.
@@ -78,9 +79,10 @@ Local Windows validation has passed with Node.js, Rust, Cargo, WebView2, and MSV
 - `npm run prepare:sidecar`
 - `npm run smoke:sidecar`
 - `node ./node_modules/@tauri-apps/cli/tauri.js build --no-bundle`
+- `npm run tauri -- build`
 - Isolated sidecar smoke test on a temporary port: `/healthz` and `/statusz` returned `200 OK`.
 
-Full local installer bundling is blocked in this environment until NSIS can be installed or downloaded successfully. Use `npm run check:installer-prereqs` to confirm local readiness before running `npm run tauri build`. The release executable build is validated; installer validation should be completed locally after NSIS is available or through `.github/workflows/desktop-release.yml`.
+Full local Windows NSIS installer bundling has been validated. Chocolatey installation failed in a non-elevated shell in this environment, but `winget install --id NSIS.NSIS --exact --silent --accept-package-agreements --accept-source-agreements` succeeded and Tauri also cached its NSIS toolchain under `%LOCALAPPDATA%\tauri\NSIS`. Use `npm run check:installer-prereqs` to confirm local readiness before running `npm run tauri build`.
 
 Release packaging is represented by `.github/workflows/desktop-release.yml`; local `npm run tauri build` should still be used before publishing release artifacts when possible.
 
