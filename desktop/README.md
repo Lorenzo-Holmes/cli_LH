@@ -36,6 +36,17 @@ The Stage 3 dashboard starts as read-only on purpose:
 
 This is safer for beginners than starting with editable settings. First learn what the engine is doing; then later stages can add controlled editing where it is safe.
 
+## Next Actions Guide
+
+The cockpit includes a small **Next actions** panel near the top of the dashboard. It reads the same local state that the rest of the UI already has:
+
+- launch settings,
+- preflight checks,
+- sidecar process phase,
+- safe `/healthz` and `/statusz` probe results.
+
+It then recommends the next safe step, such as opening the setup wizard, fixing preflight checks, starting the sidecar, probing readiness, opening management, or inspecting logs. This teaches the normal operating loop without automatically changing settings or exposing secrets.
+
 ## Responsibilities
 
 - React renders the control cockpit.

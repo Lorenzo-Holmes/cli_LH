@@ -3,6 +3,7 @@ import { ConfigPanel } from "./components/ConfigPanel";
 import { ControlPanel } from "./components/ControlPanel";
 import { LogPanel } from "./components/LogPanel";
 import { ManagementSummaryPanel } from "./components/ManagementSummaryPanel";
+import { NextActionsPanel } from "./components/NextActionsPanel";
 import { PreflightPanel } from "./components/PreflightPanel";
 import { ProfilePanel } from "./components/ProfilePanel";
 import { ProviderSummaryPanel } from "./components/ProviderSummaryPanel";
@@ -213,6 +214,16 @@ export default function App() {
             onStart={() => void runAction(() => startSidecar(normalizedSettings))}
             onStop={() => void runAction(stopSidecar)}
             onRestart={() => void runAction(() => restartSidecar(normalizedSettings))}
+          />
+          <NextActionsPanel
+            settings={normalizedSettings}
+            state={state}
+            preflight={preflight}
+            probe={probe}
+            onSetup={() => setWizardOpen(true)}
+            onStart={() => void runAction(() => startSidecar(normalizedSettings))}
+            onProbe={() => void refreshProbe()}
+            onOpenManagement={() => void runUtilityAction(() => openManagementPage(normalizedSettings), "Opened management UI")}
           />
           <StatusPanel probe={probe} />
           <ProviderSummaryPanel probe={probe} />
