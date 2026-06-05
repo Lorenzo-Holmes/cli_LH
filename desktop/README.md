@@ -47,6 +47,17 @@ The cockpit includes a small **Next actions** panel near the top of the dashboar
 
 It then recommends the next safe step, such as opening the setup wizard, fixing preflight checks, starting the sidecar, probing readiness, opening management, or inspecting logs. This teaches the normal operating loop without automatically changing settings or exposing secrets.
 
+## Management Session Panel
+
+The **Management Session** panel is an intentionally small read-only bridge into authenticated management endpoints.
+
+- The management key is kept only in React memory.
+- The key is not saved into desktop settings or profiles.
+- The panel does not fetch full `config.yaml`, API keys, OAuth files, or auth records.
+- It only reads a few safe operational toggles: debug, file logging, usage statistics, WebSocket auth, and whether a proxy URL is configured.
+
+For beginners, this creates a safe learning path: first see whether management is configured, then verify the key, then understand a few runtime options before any future editable settings are introduced.
+
 ## Responsibilities
 
 - React renders the control cockpit.

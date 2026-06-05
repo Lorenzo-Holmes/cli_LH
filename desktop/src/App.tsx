@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ConfigPanel } from "./components/ConfigPanel";
 import { ControlPanel } from "./components/ControlPanel";
 import { LogPanel } from "./components/LogPanel";
+import { ManagementSessionPanel } from "./components/ManagementSessionPanel";
 import { ManagementSummaryPanel } from "./components/ManagementSummaryPanel";
 import { NextActionsPanel } from "./components/NextActionsPanel";
 import { PreflightPanel } from "./components/PreflightPanel";
@@ -12,6 +13,7 @@ import { SetupWizard } from "./components/SetupWizard";
 import { Sidebar } from "./components/Sidebar";
 import { StatusPanel } from "./components/StatusPanel";
 import { clearLogs, deleteProfile, discoverLaunchProfile, exportLogs, getSettings, getSidecarState, listProfiles, openAppDataDir, openManagementPage, recommendAvailablePort, renameProfile, restartSidecar, revealBinaryPath, revealConfigPath, saveProfile, saveSettings, selectBinaryPath, selectConfigPath, startSidecar, stopSidecar, subscribeSidecarEvents, validateLaunchProfile, type LaunchProfile, type LogLine, type PreflightReport, type SidecarState } from "./lib/sidecar";
+import { loadManagementSummary, type ManagementSessionState, type ManagementSummary } from "./lib/management";
 import { probeSidecar, type ProbeResult } from "./lib/status";
 import { defaultSettings, normalizeSettings, type DesktopSettings } from "./lib/storage";
 
@@ -22,6 +24,10 @@ export default function App() {
   const [preflight, setPreflight] = useState<PreflightReport>();
   const [logs, setLogs] = useState<LogLine[]>([]);
   const [profiles, setProfiles] = useState<LaunchProfile[]>([]);
+  const [managementKey, setManagementKey] = useState("");
+  const [managementSessionState, setManagementSessionState] = useState<ManagementSessionState>("signed-out");
+  const [managementSummary, setManagementSummary] = useState<ManagementSummary>();
+  const [managementError, setManagementError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [autoStartAttempted, setAutoStartAttempted] = useState(false);
@@ -194,6 +200,33 @@ export default function App() {
     }
   }
 
+  async function verifyManagementSession() {
+    const key = managementKey.trim();
+    if (!key) return;
+    setManagementSessionState("checking");
+    setManagementError(undefined);
+    try {
+      const summary = await loadManagementSummary(normalizedSettings.baseUrl, key);
+      setManagementSummary(summary);
+      setManagementSessionState("signed-in");
+      pushLog({ source: "system", message: "Management read-only session verified", timestamp: new Date().toISOString() });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setManagementSummary(undefined);
+      setManagementSessionState("error");
+      setManagementError(message);
+      pushLog({ source: "system", message: `Management session check failed: ${message}`, timestamp: new Date().toISOString() });
+    }
+  }
+
+  function clearManagementSession() {
+    setManagementKey("");
+    setManagementSummary(undefined);
+    setManagementError(undefined);
+    setManagementSessionState("signed-out");
+    pushLog({ source: "system", message: "Management session cleared", timestamp: new Date().toISOString() });
+  }
+
   return (
     <div className="app-shell">
       <Sidebar phase={state.phase} />
@@ -228,6 +261,16 @@ export default function App() {
           <StatusPanel probe={probe} />
           <ProviderSummaryPanel probe={probe} />
           <ManagementSummaryPanel probe={probe} />
+          <ManagementSessionPanel
+            keyValue={managementKey}
+            sessionState={managementSessionState}
+            summary={managementSummary}
+            error={managementError}
+            probe={probe}
+            onKeyChange={setManagementKey}
+            onVerify={() => void verifyManagementSession()}
+            onLogout={clearManagementSession}
+          />
           <RuntimeSummaryPanel probe={probe} />
           <ConfigPanel
             settings={settings}

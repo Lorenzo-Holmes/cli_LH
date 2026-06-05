@@ -83,6 +83,9 @@ select { border: 1px solid var(--line); background: rgba(4,9,10,0.92); color: #e
 .action-warning > svg { color: var(--amber); }
 .action-ready { border-color: rgba(125,255,157,0.32); }
 .action-ready > svg { color: var(--green); }
+.management-session-panel { min-height: 320px; }
+.management-login-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; }
+.management-safe-grid { margin-top: 16px; }
 .field { display: grid; gap: 8px; margin-bottom: 14px; }
 .field-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
 .toggle-grid { display: flex; gap: 16px; color: #c7d8d4; }
