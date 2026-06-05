@@ -917,3 +917,63 @@ fn now_string() -> String {
         .unwrap_or_default();
     millis.to_string()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_base_url_host_port_accepts_ipv4_localhost() {
+        let (host, port) =
+            parse_base_url_host_port("http://127.0.0.1:8317").expect("parse base url");
+
+        assert_eq!(host, "127.0.0.1");
+        assert_eq!(port, 8317);
+    }
+
+    #[test]
+    fn parse_base_url_host_port_accepts_ipv6_brackets() {
+        let (host, port) =
+            parse_base_url_host_port("http://[::1]:8317").expect("parse ipv6 base url");
+
+        assert_eq!(host, "::1");
+        assert_eq!(port, 8317);
+    }
+
+    #[test]
+    fn parse_base_url_host_port_rejects_missing_port() {
+        let err =
+            parse_base_url_host_port("http://127.0.0.1").expect_err("missing port should fail");
+
+        assert_eq!(err, "Base URL must include an explicit port");
+    }
+
+    #[test]
+    fn replace_base_url_port_preserves_scheme_host_and_path() {
+        let updated =
+            replace_base_url_port("http://127.0.0.1:8317/custom", 8320).expect("replace port");
+
+        assert_eq!(updated, "http://127.0.0.1:8320/custom");
+    }
+
+    #[test]
+    fn build_preflight_report_blocks_missing_binary_and_config() {
+        let report = build_preflight_report(DesktopSettings {
+            binary_path: String::new(),
+            config_path: String::new(),
+            base_url: "http://127.0.0.1:8317".to_string(),
+            local_model: false,
+            auto_start: false,
+        });
+
+        assert!(!report.can_start);
+        assert!(report
+            .checks
+            .iter()
+            .any(|check| check.id == "binaryPath" && check.severity == "error"));
+        assert!(report
+            .checks
+            .iter()
+            .any(|check| check.id == "configPath" && check.severity == "error"));
+    }
+}
