@@ -639,6 +639,11 @@ func LoadConfigOptional(configFile string, optional bool) (*Config, error) {
 		return &Config{}, nil
 	}
 
+	// Expand environment variable placeholders before unmarshalling. This keeps
+	// local secrets out of config.yaml while allowing values such as
+	// ${DEEPSEEK_API_KEY} in provider API key entries.
+	data = []byte(os.ExpandEnv(string(data)))
+
 	// Unmarshal the YAML data into the Config struct.
 	var cfg Config
 	// Set defaults before unmarshal so that absent keys keep defaults.
