@@ -16,6 +16,15 @@ This separation keeps the proxy usable from the command line while still allowin
 
 The complete product roadmap is documented in [`../docs/superpowers/specs/2026-06-05-complete-program-roadmap-design.md`](../docs/superpowers/specs/2026-06-05-complete-program-roadmap-design.md).
 
+## Health and Status Endpoints
+
+The desktop app checks two safe HTTP endpoints on the local Go sidecar:
+
+- `/healthz` answers one simple question: is the process alive enough to answer HTTP?
+- `/statusz` answers a richer question: what safe runtime, provider-count, and management-capability information can the UI show?
+
+`/statusz` intentionally reports counts and booleans instead of secrets. For example, it can say that the Management API is available or that request logging is enabled, but it must not return management passwords, API keys, OAuth tokens, or provider credentials.
+
 ## Responsibilities
 
 - React renders the control cockpit.
