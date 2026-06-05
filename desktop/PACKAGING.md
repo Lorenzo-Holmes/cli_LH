@@ -17,12 +17,16 @@ This document defines the packaging path for the `cli_LH` desktop cockpit withou
 - Scripted sidecar preparation from `desktop/`:
   - `npm run prepare:sidecar`
   - optional target override: `TAURI_TARGET_TRIPLE=<triple> npm run prepare:sidecar`
+- Scripted sidecar contract smoke test from `desktop/`:
+  - `npm run smoke:sidecar`
+  - optional PowerShell overrides: `./scripts/smoke-sidecar.ps1 -Port 8319 -BinaryPath <path> -ConfigPath <path>`
 - Desktop frontend built from `desktop/`:
   - `npm ci`
   - `npm run typecheck`
   - `npm run build`
 - Tauri native validation:
   - `npm run tauri:check`
+  - `npm run check:installer-prereqs` on Windows before full installer bundling.
   - `node ./node_modules/@tauri-apps/cli/tauri.js build --no-bundle` for release executable validation.
   - `npm run tauri build` for installer bundling when platform prerequisites are available.
 - GitHub Actions release packaging:
@@ -49,11 +53,13 @@ The launch profile remains user-editable, so development and packaged builds can
 
 1. Build and verify the Go binary from repository root.
 2. Copy the release binary into the Tauri sidecar binaries directory using `npm run prepare:sidecar` or the correct target triple name.
-3. Run frontend checks in `desktop/`.
-4. Run `npm run tauri:check` on a machine with Rust/Cargo and platform prerequisites installed.
-5. Run `node ./node_modules/@tauri-apps/cli/tauri.js build --no-bundle` from `desktop/` to validate the release executable.
-6. Run `npm run tauri build` for the target platform when installer tooling is installed or can be downloaded. Windows currently targets NSIS to avoid MSI/WiX, but NSIS must still be installed locally or downloadable by Tauri.
-7. Smoke-test the packaged app:
+3. Run `npm run smoke:sidecar` to validate `/healthz` and `/statusz` on an isolated temporary port.
+4. Run frontend checks in `desktop/`.
+5. Run `npm run tauri:check` on a machine with Rust/Cargo and platform prerequisites installed.
+6. Run `npm run check:installer-prereqs` on Windows before full installer bundling.
+7. Run `node ./node_modules/@tauri-apps/cli/tauri.js build --no-bundle` from `desktop/` to validate the release executable.
+8. Run `npm run tauri build` for the target platform when installer tooling is installed or can be downloaded. Windows currently targets NSIS to avoid MSI/WiX, but NSIS must still be installed locally or downloadable by Tauri.
+9. Smoke-test the packaged app:
    - Launch app.
    - Confirm preflight checks pass.
    - Start sidecar.
@@ -70,10 +76,11 @@ Local Windows validation has passed with Node.js, Rust, Cargo, WebView2, and MSV
 - `npm run typecheck`
 - `npm run build`
 - `npm run prepare:sidecar`
+- `npm run smoke:sidecar`
 - `node ./node_modules/@tauri-apps/cli/tauri.js build --no-bundle`
 - Isolated sidecar smoke test on a temporary port: `/healthz` and `/statusz` returned `200 OK`.
 
-Full local installer bundling is blocked in this environment until NSIS or WiX can be installed or downloaded successfully. The release executable build is validated; installer validation should be completed locally after NSIS is available or through `.github/workflows/desktop-release.yml`.
+Full local installer bundling is blocked in this environment until NSIS can be installed or downloaded successfully. Use `npm run check:installer-prereqs` to confirm local readiness before running `npm run tauri build`. The release executable build is validated; installer validation should be completed locally after NSIS is available or through `.github/workflows/desktop-release.yml`.
 
 Release packaging is represented by `.github/workflows/desktop-release.yml`; local `npm run tauri build` should still be used before publishing release artifacts when possible.
 

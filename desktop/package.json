@@ -9,6 +9,8 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "prepare:sidecar": "node ./scripts/prepare-sidecar.mjs",
+    "smoke:sidecar": "powershell -ExecutionPolicy Bypass -File ./scripts/smoke-sidecar.ps1",
+    "check:installer-prereqs": "powershell -ExecutionPolicy Bypass -File ./scripts/check-windows-installer-prereqs.ps1",
     "tauri": "node ./node_modules/@tauri-apps/cli/tauri.js",
     "tauri:check": "node ./node_modules/@tauri-apps/cli/tauri.js info && cargo check --manifest-path src-tauri/Cargo.toml"
   },

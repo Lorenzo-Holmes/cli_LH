@@ -218,6 +218,7 @@ export default function App() {
             onSelectBinary={() => void chooseBinaryPath()}
             onSelectConfig={() => void chooseConfigPath()}
             onDiscover={() => void autoDiscoverProfile()}
+            onRecommendPort={() => void suggestAvailablePort()}
             onOpenManagement={() => void runUtilityAction(() => openManagementPage(normalizedSettings), "Opened management UI")}
             onRevealBinary={() => void runUtilityAction(() => revealBinaryPath(normalizedSettings), "Revealed binary path")}
             onRevealConfig={() => void runUtilityAction(() => revealConfigPath(normalizedSettings), "Revealed config path")}

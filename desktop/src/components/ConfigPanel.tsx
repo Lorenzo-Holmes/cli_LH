@@ -8,6 +8,7 @@ export function ConfigPanel({
   onSelectBinary,
   onSelectConfig,
   onDiscover,
+  onRecommendPort,
   onOpenManagement,
   onRevealBinary,
   onRevealConfig,
@@ -19,6 +20,7 @@ export function ConfigPanel({
   onSelectBinary: () => void;
   onSelectConfig: () => void;
   onDiscover: () => void;
+  onRecommendPort: () => void;
   onOpenManagement: () => void;
   onRevealBinary: () => void;
   onRevealConfig: () => void;
@@ -30,6 +32,7 @@ export function ConfigPanel({
         <span>Launch Profile</span>
         <div className="panel-actions">
           <button onClick={onDiscover}><Wand2 size={15} /> Auto-detect</button>
+          <button onClick={onRecommendPort}>Suggest port</button>
           <button onClick={onSave}>Save</button>
         </div>
       </div>
