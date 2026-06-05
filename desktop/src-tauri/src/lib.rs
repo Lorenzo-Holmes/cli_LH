@@ -2,10 +2,11 @@ mod sidecar;
 mod tray;
 
 use sidecar::{
-    clear_logs, discover_launch_profile, export_logs, get_settings, get_sidecar_state, open_app_data_dir,
-    open_management_page, recommend_available_port, restart_sidecar, list_profiles, reveal_binary_path,
-    reveal_config_path, save_profile, save_settings, start_sidecar, stop_sidecar, validate_launch_profile,
-    SidecarManager,
+    clear_logs, delete_profile, discover_launch_profile, export_logs, get_settings,
+    get_sidecar_state, list_profiles, open_app_data_dir, open_management_page,
+    recommend_available_port, rename_profile, restart_sidecar, reveal_binary_path,
+    reveal_config_path, save_profile, save_settings, start_sidecar, stop_sidecar,
+    validate_launch_profile, SidecarManager,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -19,6 +20,8 @@ pub fn run() {
             save_settings,
             list_profiles,
             save_profile,
+            rename_profile,
+            delete_profile,
             get_sidecar_state,
             start_sidecar,
             stop_sidecar,

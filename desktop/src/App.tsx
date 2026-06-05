@@ -7,7 +7,7 @@ import { ProfilePanel } from "./components/ProfilePanel";
 import { SetupWizard } from "./components/SetupWizard";
 import { Sidebar } from "./components/Sidebar";
 import { StatusPanel } from "./components/StatusPanel";
-import { clearLogs, discoverLaunchProfile, exportLogs, getSettings, getSidecarState, listProfiles, openAppDataDir, openManagementPage, recommendAvailablePort, restartSidecar, revealBinaryPath, revealConfigPath, saveProfile, saveSettings, selectBinaryPath, selectConfigPath, startSidecar, stopSidecar, subscribeSidecarEvents, validateLaunchProfile, type LaunchProfile, type LogLine, type PreflightReport, type SidecarState } from "./lib/sidecar";
+import { clearLogs, deleteProfile, discoverLaunchProfile, exportLogs, getSettings, getSidecarState, listProfiles, openAppDataDir, openManagementPage, recommendAvailablePort, renameProfile, restartSidecar, revealBinaryPath, revealConfigPath, saveProfile, saveSettings, selectBinaryPath, selectConfigPath, startSidecar, stopSidecar, subscribeSidecarEvents, validateLaunchProfile, type LaunchProfile, type LogLine, type PreflightReport, type SidecarState } from "./lib/sidecar";
 import { probeSidecar, type ProbeResult } from "./lib/status";
 import { defaultSettings, normalizeSettings, type DesktopSettings } from "./lib/storage";
 
@@ -20,6 +20,7 @@ export default function App() {
   const [profiles, setProfiles] = useState<LaunchProfile[]>([]);
   const [busy, setBusy] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [autoStartAttempted, setAutoStartAttempted] = useState(false);
 
   const normalizedSettings = useMemo(() => normalizeSettings(settings), [settings]);
 
@@ -76,6 +77,14 @@ export default function App() {
   useEffect(() => {
     void refreshPreflight();
   }, [refreshPreflight]);
+
+  useEffect(() => {
+    if (autoStartAttempted || !settings.autoStart || !preflight?.canStart) return;
+    if (state.phase !== "idle" && state.phase !== "stopped") return;
+    setAutoStartAttempted(true);
+    pushLog({ source: "system", message: "Auto start is enabled; starting sidecar", timestamp: new Date().toISOString() });
+    void runAction(() => startSidecar(normalizedSettings));
+  }, [autoStartAttempted, normalizedSettings, preflight?.canStart, pushLog, settings.autoStart, state.phase]);
 
   async function runAction(action: () => Promise<SidecarState>) {
     setBusy(true);
@@ -149,6 +158,28 @@ export default function App() {
     }
   }
 
+  async function renameCurrentProfile(oldName: string, newName: string) {
+    try {
+      const saved = await renameProfile(oldName, newName);
+      setProfiles(saved);
+      pushLog({ source: "system", message: `Renamed profile: ${oldName} -> ${newName.trim()}`, timestamp: new Date().toISOString() });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      pushLog({ source: "system", message, timestamp: new Date().toISOString() });
+    }
+  }
+
+  async function deleteCurrentProfile(name: string) {
+    try {
+      const saved = await deleteProfile(name);
+      setProfiles(saved);
+      pushLog({ source: "system", message: `Deleted profile: ${name}`, timestamp: new Date().toISOString() });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      pushLog({ source: "system", message, timestamp: new Date().toISOString() });
+    }
+  }
+
   async function runUtilityAction(action: () => Promise<void>, successMessage: string) {
     try {
       await action();
@@ -202,6 +233,8 @@ export default function App() {
             settings={normalizedSettings}
             onApply={(next) => setSettings(normalizeSettings(next))}
             onSave={(name) => void saveCurrentProfile(name)}
+            onRename={(oldName, newName) => void renameCurrentProfile(oldName, newName)}
+            onDelete={(name) => void deleteCurrentProfile(name)}
           />
           <PreflightPanel report={preflight} onRefresh={() => void refreshPreflight()} />
           <LogPanel logs={logs} onClear={() => {

@@ -72,6 +72,20 @@ export async function saveProfile(name: string, settings: DesktopSettings): Prom
   return invoke<LaunchProfile[]>("save_profile", { name, settings: normalizeSettings(settings) });
 }
 
+export async function renameProfile(oldName: string, newName: string): Promise<LaunchProfile[]> {
+  if (!inTauri()) {
+    return [];
+  }
+  return invoke<LaunchProfile[]>("rename_profile", { oldName, newName });
+}
+
+export async function deleteProfile(name: string): Promise<LaunchProfile[]> {
+  if (!inTauri()) {
+    return [];
+  }
+  return invoke<LaunchProfile[]>("delete_profile", { name });
+}
+
 export async function getSidecarState(): Promise<SidecarState> {
   if (!inTauri()) {
     return { phase: "idle", message: "Browser preview mode" };

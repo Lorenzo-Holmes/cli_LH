@@ -10,19 +10,36 @@ const TRAY_ID: &str = "main-tray";
 pub fn setup_tray(app: &mut App) -> tauri::Result<()> {
     let show = MenuItem::with_id(app, "show", "Show Window", true, None::<&str>)?;
     let open_ui = MenuItem::with_id(app, "open_ui", "Open Management UI", true, None::<&str>)?;
-    let open_app_data = MenuItem::with_id(app, "open_app_data", "Open App Data", true, None::<&str>)?;
+    let open_app_data =
+        MenuItem::with_id(app, "open_app_data", "Open App Data", true, None::<&str>)?;
     let start = MenuItem::with_id(app, "start", "Start Sidecar", true, None::<&str>)?;
     let stop = MenuItem::with_id(app, "stop", "Stop Sidecar", true, None::<&str>)?;
     let restart = MenuItem::with_id(app, "restart", "Restart Sidecar", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show, &open_ui, &open_app_data, &start, &stop, &restart, &quit])?;
+    let menu = Menu::with_items(
+        app,
+        &[
+            &show,
+            &open_ui,
+            &open_app_data,
+            &start,
+            &stop,
+            &restart,
+            &quit,
+        ],
+    )?;
 
     TrayIconBuilder::with_id(TRAY_ID)
         .menu(&menu)
         .tooltip("cli_LH Cockpit: idle")
         .show_menu_on_left_click(false)
         .on_tray_icon_event(|tray, event| {
-            if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = event {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
                 if let Some(window) = tray.app_handle().get_webview_window("main") {
                     let _ = window.show();
                     let _ = window.set_focus();
@@ -37,7 +54,8 @@ pub fn setup_tray(app: &mut App) -> tauri::Result<()> {
                 }
             }
             "open_ui" => {
-                let _ = get_settings(app.clone()).and_then(|settings| open_management_page(app.clone(), settings));
+                let _ = get_settings(app.clone())
+                    .and_then(|settings| open_management_page(app.clone(), settings));
             }
             "open_app_data" => {
                 let _ = open_app_data_dir(app.clone());
@@ -99,13 +117,22 @@ fn current_phase(manager: &SidecarManager) -> Option<String> {
 }
 
 fn can_start(manager: &SidecarManager) -> bool {
-    matches!(current_phase(manager).as_deref(), Some("idle" | "stopped" | "error") | None)
+    matches!(
+        current_phase(manager).as_deref(),
+        Some("idle" | "stopped" | "error") | None
+    )
 }
 
 fn can_stop(manager: &SidecarManager) -> bool {
-    matches!(current_phase(manager).as_deref(), Some("starting" | "ready"))
+    matches!(
+        current_phase(manager).as_deref(),
+        Some("starting" | "ready")
+    )
 }
 
 fn can_restart(manager: &SidecarManager) -> bool {
-    matches!(current_phase(manager).as_deref(), Some("starting" | "ready" | "error" | "stopped" | "idle") | None)
+    matches!(
+        current_phase(manager).as_deref(),
+        Some("starting" | "ready" | "error" | "stopped" | "idle") | None
+    )
 }
