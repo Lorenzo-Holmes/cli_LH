@@ -58,6 +58,19 @@ The **Management Session** panel is an intentionally small read-only bridge into
 
 For beginners, this creates a safe learning path: first see whether management is configured, then verify the key, then understand a few runtime options before any future editable settings are introduced.
 
+## API Usage Guide Panel
+
+The **API Usage Guide** panel answers the beginner question: “What URL do I paste into my client?”
+
+It shows the currently configured Base URL and a few common local endpoints:
+
+- OpenAI-compatible chat completions: `/v1/chat/completions`
+- OpenAI-compatible responses: `/v1/responses`
+- health check: `/healthz`
+- safe status: `/statusz`
+
+The panel intentionally shows URLs only. It does not read, display, or save API keys. The user should keep credentials in the client tool or in the normal `cli_LH` configuration path.
+
 ## Responsibilities
 
 - React renders the control cockpit.

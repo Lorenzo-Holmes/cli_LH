@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ApiUsageGuidePanel } from "./components/ApiUsageGuidePanel";
 import { ConfigPanel } from "./components/ConfigPanel";
 import { ControlPanel } from "./components/ControlPanel";
 import { LogPanel } from "./components/LogPanel";
@@ -200,6 +201,15 @@ export default function App() {
     }
   }
 
+  async function copyGuideValue(value: string, label: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      pushLog({ source: "system", message: `Copied ${label}`, timestamp: new Date().toISOString() });
+    } catch {
+      pushLog({ source: "system", message: `Copy failed for ${label}; select the text and copy it manually`, timestamp: new Date().toISOString() });
+    }
+  }
+
   async function verifyManagementSession() {
     const key = managementKey.trim();
     if (!key) return;
@@ -272,6 +282,12 @@ export default function App() {
             onLogout={clearManagementSession}
           />
           <RuntimeSummaryPanel probe={probe} />
+          <ApiUsageGuidePanel
+            settings={normalizedSettings}
+            state={state}
+            probe={probe}
+            onCopy={(value, label) => void copyGuideValue(value, label)}
+          />
           <ConfigPanel
             settings={settings}
             onChange={setSettings}
