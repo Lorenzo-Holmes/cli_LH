@@ -2,8 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ConfigPanel } from "./components/ConfigPanel";
 import { ControlPanel } from "./components/ControlPanel";
 import { LogPanel } from "./components/LogPanel";
+import { ManagementSummaryPanel } from "./components/ManagementSummaryPanel";
 import { PreflightPanel } from "./components/PreflightPanel";
 import { ProfilePanel } from "./components/ProfilePanel";
+import { ProviderSummaryPanel } from "./components/ProviderSummaryPanel";
+import { RuntimeSummaryPanel } from "./components/RuntimeSummaryPanel";
 import { SetupWizard } from "./components/SetupWizard";
 import { Sidebar } from "./components/Sidebar";
 import { StatusPanel } from "./components/StatusPanel";
@@ -212,6 +215,9 @@ export default function App() {
             onRestart={() => void runAction(() => restartSidecar(normalizedSettings))}
           />
           <StatusPanel probe={probe} />
+          <ProviderSummaryPanel probe={probe} />
+          <ManagementSummaryPanel probe={probe} />
+          <RuntimeSummaryPanel probe={probe} />
           <ConfigPanel
             settings={settings}
             onChange={setSettings}

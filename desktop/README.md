@@ -25,6 +25,17 @@ The desktop app checks two safe HTTP endpoints on the local Go sidecar:
 
 `/statusz` intentionally reports counts and booleans instead of secrets. For example, it can say that the Management API is available or that request logging is enabled, but it must not return management passwords, API keys, OAuth tokens, or provider credentials.
 
+## Read-Only Dashboard Panels
+
+The Stage 3 dashboard starts as read-only on purpose:
+
+- **Telemetry** answers whether the local Go sidecar is responding.
+- **Providers** summarizes configured provider entries by count, without showing keys.
+- **Management** summarizes enabled local control features, without showing passwords.
+- **Runtime** shows where the sidecar is running and which launch modes are active.
+
+This is safer for beginners than starting with editable settings. First learn what the engine is doing; then later stages can add controlled editing where it is safe.
+
 ## Responsibilities
 
 - React renders the control cockpit.
