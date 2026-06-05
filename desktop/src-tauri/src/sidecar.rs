@@ -22,6 +22,13 @@ pub struct DesktopSettings {
     pub auto_start: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LaunchProfile {
+    pub name: String,
+    pub settings: DesktopSettings,
+}
+
 impl Default for DesktopSettings {
     fn default() -> Self {
         Self {
@@ -333,6 +340,44 @@ pub fn save_settings(app: AppHandle, settings: DesktopSettings) -> Result<Deskto
 }
 
 #[tauri::command]
+pub fn list_profiles(app: AppHandle) -> Result<Vec<LaunchProfile>, String> {
+    let path = profiles_path(&app)?;
+    if !path.exists() {
+        return Ok(Vec::new());
+    }
+    let raw = fs::read_to_string(path).map_err(|err| format!("read profiles: {err}"))?;
+    serde_json::from_str(&raw).map_err(|err| format!("parse profiles: {err}"))
+}
+
+#[tauri::command]
+pub fn save_profile(app: AppHandle, name: String, settings: DesktopSettings) -> Result<Vec<LaunchProfile>, String> {
+    let normalized_name = name.trim();
+    if normalized_name.is_empty() {
+        return Err("profile name is required".to_string());
+    }
+
+    let mut profiles = list_profiles(app.clone())?;
+    let profile = LaunchProfile {
+        name: normalized_name.to_string(),
+        settings: normalize_settings(settings),
+    };
+    if let Some(existing) = profiles.iter_mut().find(|item| item.name.eq_ignore_ascii_case(normalized_name)) {
+        *existing = profile;
+    } else {
+        profiles.push(profile);
+    }
+    profiles.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+
+    let path = profiles_path(&app)?;
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|err| format!("create profiles dir: {err}"))?;
+    }
+    let raw = serde_json::to_string_pretty(&profiles).map_err(|err| format!("serialize profiles: {err}"))?;
+    fs::write(path, raw).map_err(|err| format!("write profiles: {err}"))?;
+    Ok(profiles)
+}
+
+#[tauri::command]
 pub fn start_sidecar(app: AppHandle, manager: State<'_, SidecarManager>, settings: DesktopSettings) -> Result<SidecarStateSnapshot, String> {
     manager.start(&app, settings)
 }
@@ -630,6 +675,11 @@ fn build_preflight_report(settings: DesktopSettings) -> PreflightReport {
 fn settings_path(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app.path().app_config_dir().map_err(|err| format!("resolve app config dir: {err}"))?;
     Ok(dir.join("settings.json"))
+}
+
+fn profiles_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let dir = app.path().app_config_dir().map_err(|err| format!("resolve app config dir: {err}"))?;
+    Ok(dir.join("profiles.json"))
 }
 
 #[cfg(windows)]

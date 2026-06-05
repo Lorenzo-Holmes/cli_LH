@@ -35,6 +35,11 @@ export type PreflightReport = {
   checks: PreflightCheck[];
 };
 
+export type LaunchProfile = {
+  name: string;
+  settings: DesktopSettings;
+};
+
 function inTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
@@ -51,6 +56,20 @@ export async function saveSettings(settings: DesktopSettings): Promise<DesktopSe
     return settings;
   }
   return invoke<DesktopSettings>("save_settings", { settings });
+}
+
+export async function listProfiles(): Promise<LaunchProfile[]> {
+  if (!inTauri()) {
+    return [];
+  }
+  return invoke<LaunchProfile[]>("list_profiles");
+}
+
+export async function saveProfile(name: string, settings: DesktopSettings): Promise<LaunchProfile[]> {
+  if (!inTauri()) {
+    return [{ name, settings: normalizeSettings(settings) }];
+  }
+  return invoke<LaunchProfile[]>("save_profile", { name, settings: normalizeSettings(settings) });
 }
 
 export async function getSidecarState(): Promise<SidecarState> {

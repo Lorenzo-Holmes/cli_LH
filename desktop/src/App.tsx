@@ -3,10 +3,11 @@ import { ConfigPanel } from "./components/ConfigPanel";
 import { ControlPanel } from "./components/ControlPanel";
 import { LogPanel } from "./components/LogPanel";
 import { PreflightPanel } from "./components/PreflightPanel";
+import { ProfilePanel } from "./components/ProfilePanel";
 import { SetupWizard } from "./components/SetupWizard";
 import { Sidebar } from "./components/Sidebar";
 import { StatusPanel } from "./components/StatusPanel";
-import { clearLogs, discoverLaunchProfile, exportLogs, getSettings, getSidecarState, openAppDataDir, openManagementPage, recommendAvailablePort, restartSidecar, revealBinaryPath, revealConfigPath, saveSettings, selectBinaryPath, selectConfigPath, startSidecar, stopSidecar, subscribeSidecarEvents, validateLaunchProfile, type LogLine, type PreflightReport, type SidecarState } from "./lib/sidecar";
+import { clearLogs, discoverLaunchProfile, exportLogs, getSettings, getSidecarState, listProfiles, openAppDataDir, openManagementPage, recommendAvailablePort, restartSidecar, revealBinaryPath, revealConfigPath, saveProfile, saveSettings, selectBinaryPath, selectConfigPath, startSidecar, stopSidecar, subscribeSidecarEvents, validateLaunchProfile, type LaunchProfile, type LogLine, type PreflightReport, type SidecarState } from "./lib/sidecar";
 import { probeSidecar, type ProbeResult } from "./lib/status";
 import { defaultSettings, normalizeSettings, type DesktopSettings } from "./lib/storage";
 
@@ -16,6 +17,7 @@ export default function App() {
   const [probe, setProbe] = useState<ProbeResult>();
   const [preflight, setPreflight] = useState<PreflightReport>();
   const [logs, setLogs] = useState<LogLine[]>([]);
+  const [profiles, setProfiles] = useState<LaunchProfile[]>([]);
   const [busy, setBusy] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
 
@@ -51,6 +53,9 @@ export default function App() {
     });
     void getSidecarState().then((loaded) => {
       if (!cancelled) setState(loaded);
+    });
+    void listProfiles().then((loaded) => {
+      if (!cancelled) setProfiles(loaded);
     });
     void subscribeSidecarEvents({ onState: setState, onLog: pushLog }).then((handlers) => {
       unlisten = handlers;
@@ -133,6 +138,17 @@ export default function App() {
     }
   }
 
+  async function saveCurrentProfile(name: string) {
+    try {
+      const saved = await saveProfile(name, normalizedSettings);
+      setProfiles(saved);
+      pushLog({ source: "system", message: `Saved profile: ${name.trim()}`, timestamp: new Date().toISOString() });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      pushLog({ source: "system", message, timestamp: new Date().toISOString() });
+    }
+  }
+
   async function runUtilityAction(action: () => Promise<void>, successMessage: string) {
     try {
       await action();
@@ -180,6 +196,12 @@ export default function App() {
               setSettings(saved);
               return { ...state, message: "Settings saved" };
             })}
+          />
+          <ProfilePanel
+            profiles={profiles}
+            settings={normalizedSettings}
+            onApply={(next) => setSettings(normalizeSettings(next))}
+            onSave={(name) => void saveCurrentProfile(name)}
           />
           <PreflightPanel report={preflight} onRefresh={() => void refreshPreflight()} />
           <LogPanel logs={logs} onClear={() => {

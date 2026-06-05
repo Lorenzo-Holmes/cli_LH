@@ -14,6 +14,9 @@ This document defines the packaging path for the `cli_LH` desktop cockpit withou
 - Go sidecar binary built from repository root:
   - Windows: `go build -o desktop/src-tauri/binaries/cli_LH-x86_64-pc-windows-msvc.exe ./cmd/server`
   - Linux/macOS names should follow Tauri sidecar target naming when packaging those platforms.
+- Scripted sidecar preparation from `desktop/`:
+  - `npm run prepare:sidecar`
+  - optional target override: `TAURI_TARGET_TRIPLE=<triple> npm run prepare:sidecar`
 - Desktop frontend built from `desktop/`:
   - `npm ci`
   - `npm run typecheck`
@@ -40,7 +43,7 @@ The launch profile remains user-editable, so development and packaged builds can
 ## Recommended Release Flow
 
 1. Build and verify the Go binary from repository root.
-2. Copy the release binary into the Tauri sidecar binaries directory using the correct target triple name.
+2. Copy the release binary into the Tauri sidecar binaries directory using `npm run prepare:sidecar` or the correct target triple name.
 3. Run frontend checks in `desktop/`.
 4. Run `npm run tauri:check` on a machine with Rust/Cargo and platform prerequisites installed.
 5. Run `npm run tauri build` for the target platform.

@@ -8,6 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
+    "prepare:sidecar": "node ./scripts/prepare-sidecar.mjs",
     "tauri": "node ./node_modules/@tauri-apps/cli/tauri.js",
     "tauri:check": "node ./node_modules/@tauri-apps/cli/tauri.js info && cargo check --manifest-path src-tauri/Cargo.toml"
   },
