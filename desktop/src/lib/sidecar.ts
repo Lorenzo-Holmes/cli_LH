@@ -129,6 +129,14 @@ export async function exportLogs(lines: LogLine[]): Promise<string> {
   return invoke<string>("export_logs", { lines });
 }
 
+export async function exportTextFile(fileName: string, content: string): Promise<string> {
+  if (!inTauri()) {
+    const blob = new Blob([content], { type: "text/plain" });
+    return URL.createObjectURL(blob);
+  }
+  return invoke<string>("export_text_file", { fileName, content });
+}
+
 export async function selectBinaryPath(): Promise<string | undefined> {
   if (!inTauri()) {
     return undefined;

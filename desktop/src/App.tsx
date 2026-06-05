@@ -3,6 +3,7 @@ import { ActivityOverviewPanel } from "./components/ActivityOverviewPanel";
 import { ApiUsageGuidePanel } from "./components/ApiUsageGuidePanel";
 import { ConfigPanel } from "./components/ConfigPanel";
 import { ControlPanel } from "./components/ControlPanel";
+import { DiagnosticsExportPanel } from "./components/DiagnosticsExportPanel";
 import { LogPanel } from "./components/LogPanel";
 import { ManagementSessionPanel } from "./components/ManagementSessionPanel";
 import { ManagementSummaryPanel } from "./components/ManagementSummaryPanel";
@@ -15,7 +16,8 @@ import { SetupWizard } from "./components/SetupWizard";
 import { Sidebar } from "./components/Sidebar";
 import { StatusPanel } from "./components/StatusPanel";
 import { TroubleshootingGuidePanel } from "./components/TroubleshootingGuidePanel";
-import { clearLogs, deleteProfile, discoverLaunchProfile, exportLogs, getSettings, getSidecarState, listProfiles, openAppDataDir, openManagementPage, recommendAvailablePort, renameProfile, restartSidecar, revealBinaryPath, revealConfigPath, saveProfile, saveSettings, selectBinaryPath, selectConfigPath, startSidecar, stopSidecar, subscribeSidecarEvents, validateLaunchProfile, type LaunchProfile, type LogLine, type PreflightReport, type SidecarState } from "./lib/sidecar";
+import { buildDiagnosticsReport } from "./lib/diagnosticsExport";
+import { clearLogs, deleteProfile, discoverLaunchProfile, exportLogs, exportTextFile, getSettings, getSidecarState, listProfiles, openAppDataDir, openManagementPage, recommendAvailablePort, renameProfile, restartSidecar, revealBinaryPath, revealConfigPath, saveProfile, saveSettings, selectBinaryPath, selectConfigPath, startSidecar, stopSidecar, subscribeSidecarEvents, validateLaunchProfile, type LaunchProfile, type LogLine, type PreflightReport, type SidecarState } from "./lib/sidecar";
 import { loadManagementSummary, type ManagementSessionState, type ManagementSummary } from "./lib/management";
 import { probeSidecar, type ProbeResult } from "./lib/status";
 import { defaultSettings, normalizeSettings, type DesktopSettings } from "./lib/storage";
@@ -160,6 +162,17 @@ export default function App() {
     }
   }
 
+  async function exportDiagnosticsReport() {
+    try {
+      const content = buildDiagnosticsReport({ settings: normalizedSettings, state, preflight, probe, logs });
+      const path = await exportTextFile(`diagnostics-report-${Date.now()}.md`, content);
+      pushLog({ source: "system", message: `Exported safe diagnostics report to ${path}`, timestamp: new Date().toISOString() });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      pushLog({ source: "system", message, timestamp: new Date().toISOString() });
+    }
+  }
+
   async function saveCurrentProfile(name: string) {
     try {
       const saved = await saveProfile(name, normalizedSettings);
@@ -296,6 +309,14 @@ export default function App() {
           />
           <RuntimeSummaryPanel probe={probe} />
           <ActivityOverviewPanel state={state} probe={probe} />
+          <DiagnosticsExportPanel
+            settings={normalizedSettings}
+            state={state}
+            preflight={preflight}
+            probe={probe}
+            logs={logs}
+            onExport={() => void exportDiagnosticsReport()}
+          />
           <ApiUsageGuidePanel
             settings={normalizedSettings}
             state={state}

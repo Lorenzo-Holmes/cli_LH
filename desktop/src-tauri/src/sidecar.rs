@@ -536,6 +536,23 @@ pub fn export_logs(app: AppHandle, lines: Vec<LogLine>) -> Result<String, String
 }
 
 #[tauri::command]
+pub fn export_text_file(
+    app: AppHandle,
+    file_name: String,
+    content: String,
+) -> Result<String, String> {
+    let dir = app
+        .path()
+        .app_log_dir()
+        .map_err(|err| format!("resolve app log dir: {err}"))?;
+    fs::create_dir_all(&dir).map_err(|err| format!("create app log dir: {err}"))?;
+    let safe_name = sanitize_export_file_name(&file_name)?;
+    let path = dir.join(safe_name);
+    fs::write(&path, content).map_err(|err| format!("write exported text file: {err}"))?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
 pub fn discover_launch_profile(app: AppHandle) -> Result<DesktopSettings, String> {
     let mut settings = get_settings(app.clone()).unwrap_or_default();
     let mut roots = Vec::new();
@@ -871,6 +888,28 @@ fn write_profiles(
     Ok(profiles.clone())
 }
 
+fn sanitize_export_file_name(file_name: &str) -> Result<String, String> {
+    let trimmed = file_name.trim();
+    if trimmed.is_empty() {
+        return Err("export file name is required".to_string());
+    }
+
+    let name = PathBuf::from(trimmed)
+        .file_name()
+        .and_then(|value| value.to_str())
+        .ok_or_else(|| "export file name is invalid".to_string())?
+        .chars()
+        .map(|value| match value {
+            'a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '_' | '.' => value,
+            _ => '-',
+        })
+        .collect::<String>();
+    if name == "." || name == ".." || name.is_empty() {
+        return Err("export file name is invalid".to_string());
+    }
+    Ok(name)
+}
+
 #[cfg(windows)]
 fn binary_candidates() -> &'static [&'static str] {
     &[
@@ -975,5 +1014,13 @@ mod tests {
             .checks
             .iter()
             .any(|check| check.id == "configPath" && check.severity == "error"));
+    }
+
+    #[test]
+    fn sanitize_export_file_name_removes_paths_and_unsafe_characters() {
+        let name = sanitize_export_file_name("..\\unsafe/report:2026.md")
+            .expect("sanitize export file name");
+
+        assert_eq!(name, "report-2026.md");
     }
 }

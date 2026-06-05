@@ -2,8 +2,8 @@ mod sidecar;
 mod tray;
 
 use sidecar::{
-    clear_logs, delete_profile, discover_launch_profile, export_logs, get_settings,
-    get_sidecar_state, list_profiles, open_app_data_dir, open_management_page,
+    clear_logs, delete_profile, discover_launch_profile, export_logs, export_text_file,
+    get_settings, get_sidecar_state, list_profiles, open_app_data_dir, open_management_page,
     recommend_available_port, rename_profile, restart_sidecar, reveal_binary_path,
     reveal_config_path, save_profile, save_settings, start_sidecar, stop_sidecar,
     validate_launch_profile, SidecarManager,
@@ -28,6 +28,7 @@ pub fn run() {
             restart_sidecar,
             clear_logs,
             export_logs,
+            export_text_file,
             discover_launch_profile,
             validate_launch_profile,
             recommend_available_port,

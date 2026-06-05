@@ -99,6 +99,22 @@ It shows only safe signals that already exist in desktop state or `/statusz`:
 
 It intentionally does not read or display request bodies, prompts, responses, API keys, OAuth tokens, auth files, or full `config.yaml`. This keeps the dashboard useful without turning it into a sensitive data viewer.
 
+## Diagnostics Export Panel
+
+The **Diagnostics Export** panel creates one safe Markdown report for troubleshooting or support handoff.
+
+The report includes:
+
+- the current Base URL, with URL credentials removed if present,
+- whether the binary and config paths are configured, shown as file names rather than full paths,
+- native sidecar phase, message, and exit code,
+- preflight check summaries,
+- the latest `/healthz` and `/statusz` probe result,
+- safe provider counts and management booleans from `/statusz`,
+- a small capped set of recent visible desktop log lines with sensitive-looking lines redacted.
+
+The report intentionally excludes API keys, OAuth tokens, management passwords, request bodies, prompts, responses, auth files, and full config contents. This matters for beginners because it gives them a useful support file without teaching unsafe habits such as sharing secrets or whole configuration files.
+
 ## Responsibilities
 
 - React renders the control cockpit.
