@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     fs,
     io::{BufRead, BufReader},
+    net::TcpListener,
     path::PathBuf,
     process::{Child, Command, Stdio},
     sync::{Arc, Mutex},
@@ -57,7 +58,7 @@ impl Default for SidecarStateSnapshot {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LogLine {
     pub source: String,
     pub message: String,
@@ -352,6 +353,19 @@ pub fn clear_logs() -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn export_logs(app: AppHandle, lines: Vec<LogLine>) -> Result<String, String> {
+    let dir = app.path().app_log_dir().map_err(|err| format!("resolve app log dir: {err}"))?;
+    fs::create_dir_all(&dir).map_err(|err| format!("create app log dir: {err}"))?;
+    let path = dir.join(format!("diagnostics-{}.log", now_string()));
+    let mut content = String::new();
+    for line in lines {
+        content.push_str(&format!("[{}] {:>6} {}\n", line.timestamp, line.source, line.message));
+    }
+    fs::write(&path, content).map_err(|err| format!("write diagnostics log: {err}"))?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
 pub fn discover_launch_profile(app: AppHandle) -> Result<DesktopSettings, String> {
     let mut settings = get_settings(app.clone()).unwrap_or_default();
     let mut roots = Vec::new();
@@ -385,6 +399,32 @@ pub fn discover_launch_profile(app: AppHandle) -> Result<DesktopSettings, String
 #[tauri::command]
 pub fn validate_launch_profile(settings: DesktopSettings) -> Result<PreflightReport, String> {
     Ok(build_preflight_report(settings))
+}
+
+#[tauri::command]
+pub fn recommend_available_port(settings: DesktopSettings) -> Result<DesktopSettings, String> {
+    let mut normalized = normalize_settings(settings);
+    let (host, current_port) = parse_base_url_host_port(&normalized.base_url)?;
+    let mut selected = None;
+
+    for port in current_port.saturating_add(1)..=65535 {
+        if is_port_available(&host, port) {
+            selected = Some(port);
+            break;
+        }
+    }
+    if selected.is_none() {
+        for port in 1024..current_port {
+            if is_port_available(&host, port) {
+                selected = Some(port);
+                break;
+            }
+        }
+    }
+
+    let port = selected.ok_or_else(|| format!("no available port found for {host}"))?;
+    normalized.base_url = replace_base_url_port(&normalized.base_url, port)?;
+    Ok(normalized)
 }
 
 #[tauri::command]
@@ -523,22 +563,44 @@ fn check_port_available(base_url: &str) -> PreflightCheck {
         }
     };
 
-    match std::net::TcpStream::connect((host.as_str(), port)) {
-        Ok(_) => PreflightCheck {
-            id: "port".to_string(),
-            label: "Port".to_string(),
-            severity: "warning".to_string(),
-            message: format!("{host}:{port} is already accepting connections"),
-            suggestion: Some("If cli_LH is already running, use Probe now. Otherwise stop the process using this port or change the configured port.".to_string()),
-        },
-        Err(_) => PreflightCheck {
+    if is_port_available(&host, port) {
+        PreflightCheck {
             id: "port".to_string(),
             label: "Port".to_string(),
             severity: "ok".to_string(),
             message: format!("{host}:{port} appears available"),
             suggestion: None,
-        },
+        }
+    } else {
+        PreflightCheck {
+            id: "port".to_string(),
+            label: "Port".to_string(),
+            severity: "warning".to_string(),
+            message: format!("{host}:{port} is already accepting connections"),
+            suggestion: Some("If cli_LH is already running, use Probe now. Otherwise stop the process using this port or change the configured port.".to_string()),
+        }
     }
+}
+
+fn is_port_available(host: &str, port: u16) -> bool {
+    TcpListener::bind((host, port)).is_ok()
+}
+
+fn replace_base_url_port(base_url: &str, port: u16) -> Result<String, String> {
+    let trimmed = base_url.trim().trim_end_matches('/');
+    let (scheme, rest) = trimmed.split_once("://").ok_or_else(|| "Base URL must include a scheme".to_string())?;
+    let (authority, path) = rest.split_once('/').map_or((rest, ""), |(authority, path)| (authority, path));
+    let without_userinfo = authority.rsplit('@').next().unwrap_or(authority);
+    let prefix_len = authority.len() - without_userinfo.len();
+    let prefix = &authority[..prefix_len];
+    let host = if without_userinfo.starts_with('[') {
+        let end = without_userinfo.find(']').ok_or_else(|| "IPv6 host is missing closing bracket".to_string())?;
+        &without_userinfo[..=end]
+    } else {
+        without_userinfo.rsplit_once(':').map(|(host, _)| host).unwrap_or(without_userinfo)
+    };
+    let path_suffix = if path.is_empty() { String::new() } else { format!("/{path}") };
+    Ok(format!("{scheme}://{prefix}{host}:{port}{path_suffix}"))
 }
 
 fn build_preflight_report(settings: DesktopSettings) -> PreflightReport {

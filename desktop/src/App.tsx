@@ -3,9 +3,10 @@ import { ConfigPanel } from "./components/ConfigPanel";
 import { ControlPanel } from "./components/ControlPanel";
 import { LogPanel } from "./components/LogPanel";
 import { PreflightPanel } from "./components/PreflightPanel";
+import { SetupWizard } from "./components/SetupWizard";
 import { Sidebar } from "./components/Sidebar";
 import { StatusPanel } from "./components/StatusPanel";
-import { clearLogs, discoverLaunchProfile, getSettings, getSidecarState, openAppDataDir, openManagementPage, restartSidecar, revealBinaryPath, revealConfigPath, saveSettings, selectBinaryPath, selectConfigPath, startSidecar, stopSidecar, subscribeSidecarEvents, validateLaunchProfile, type LogLine, type PreflightReport, type SidecarState } from "./lib/sidecar";
+import { clearLogs, discoverLaunchProfile, exportLogs, getSettings, getSidecarState, openAppDataDir, openManagementPage, recommendAvailablePort, restartSidecar, revealBinaryPath, revealConfigPath, saveSettings, selectBinaryPath, selectConfigPath, startSidecar, stopSidecar, subscribeSidecarEvents, validateLaunchProfile, type LogLine, type PreflightReport, type SidecarState } from "./lib/sidecar";
 import { probeSidecar, type ProbeResult } from "./lib/status";
 import { defaultSettings, normalizeSettings, type DesktopSettings } from "./lib/storage";
 
@@ -16,6 +17,7 @@ export default function App() {
   const [preflight, setPreflight] = useState<PreflightReport>();
   const [logs, setLogs] = useState<LogLine[]>([]);
   const [busy, setBusy] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const normalizedSettings = useMemo(() => normalizeSettings(settings), [settings]);
 
@@ -41,7 +43,11 @@ export default function App() {
     let unlisten: (() => void)[] = [];
 
     void getSettings().then((loaded) => {
-      if (!cancelled) setSettings(normalizeSettings(loaded));
+      if (!cancelled) {
+        const normalized = normalizeSettings(loaded);
+        setSettings(normalized);
+        setWizardOpen(!normalized.binaryPath || !normalized.configPath);
+      }
     });
     void getSidecarState().then((loaded) => {
       if (!cancelled) setState(loaded);
@@ -106,6 +112,27 @@ export default function App() {
     }
   }
 
+  async function suggestAvailablePort() {
+    try {
+      const recommended = await recommendAvailablePort(normalizedSettings);
+      setSettings(recommended);
+      pushLog({ source: "system", message: `Suggested available base URL: ${recommended.baseUrl}`, timestamp: new Date().toISOString() });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      pushLog({ source: "system", message, timestamp: new Date().toISOString() });
+    }
+  }
+
+  async function exportVisibleLogs(lines: LogLine[]) {
+    try {
+      const path = await exportLogs(lines);
+      pushLog({ source: "system", message: `Exported ${lines.length} log lines to ${path}`, timestamp: new Date().toISOString() });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      pushLog({ source: "system", message, timestamp: new Date().toISOString() });
+    }
+  }
+
   async function runUtilityAction(action: () => Promise<void>, successMessage: string) {
     try {
       await action();
@@ -126,6 +153,7 @@ export default function App() {
             <h1>Operational cockpit for cli_LH</h1>
           </div>
           <button onClick={() => void refreshProbe()}>Probe now</button>
+          <button onClick={() => setWizardOpen(true)}>Setup wizard</button>
         </header>
         <div className="dashboard-grid">
           <ControlPanel
@@ -157,9 +185,23 @@ export default function App() {
           <LogPanel logs={logs} onClear={() => {
             setLogs([]);
             void clearLogs();
-          }} />
+          }} onExport={(visibleLogs) => void exportVisibleLogs(visibleLogs)} />
         </div>
       </main>
+      <SetupWizard
+        open={wizardOpen}
+        settings={normalizedSettings}
+        preflight={preflight}
+        onClose={() => setWizardOpen(false)}
+        onDiscover={() => void autoDiscoverProfile()}
+        onRecommendPort={() => void suggestAvailablePort()}
+        onSave={() => void runAction(async () => {
+          const saved = await saveSettings(normalizedSettings);
+          setSettings(saved);
+          return { ...state, message: "Settings saved" };
+        })}
+        onStart={() => void runAction(() => startSidecar(normalizedSettings))}
+      />
     </div>
   );
 }

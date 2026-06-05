@@ -88,6 +88,14 @@ export async function clearLogs(): Promise<void> {
   await invoke("clear_logs");
 }
 
+export async function exportLogs(lines: LogLine[]): Promise<string> {
+  if (!inTauri()) {
+    const blob = new Blob([lines.map((line) => `[${line.timestamp}] ${line.source} ${line.message}`).join("\n")], { type: "text/plain" });
+    return URL.createObjectURL(blob);
+  }
+  return invoke<string>("export_logs", { lines });
+}
+
 export async function selectBinaryPath(): Promise<string | undefined> {
   if (!inTauri()) {
     return undefined;
@@ -150,6 +158,13 @@ export async function validateLaunchProfile(settings: DesktopSettings): Promise<
     return { canStart: checks.every((check) => check.severity !== "error"), checks };
   }
   return invoke<PreflightReport>("validate_launch_profile", { settings: normalizeSettings(settings) });
+}
+
+export async function recommendAvailablePort(settings: DesktopSettings): Promise<DesktopSettings> {
+  if (!inTauri()) {
+    return normalizeSettings({ ...settings, baseUrl: "http://127.0.0.1:8318" });
+  }
+  return invoke<DesktopSettings>("recommend_available_port", { settings: normalizeSettings(settings) });
 }
 
 export async function openManagementPage(settings: DesktopSettings): Promise<void> {
