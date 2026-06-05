@@ -1,4 +1,7 @@
-use crate::sidecar::{get_settings, open_app_data_dir, open_management_page, SidecarManager};
+use crate::sidecar::{
+    get_settings, open_app_data_dir, open_management_page, reveal_binary_path, reveal_config_path,
+    SidecarManager, SidecarStateSnapshot,
+};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -12,6 +15,8 @@ pub fn setup_tray(app: &mut App) -> tauri::Result<()> {
     let open_ui = MenuItem::with_id(app, "open_ui", "Open Management UI", true, None::<&str>)?;
     let open_app_data =
         MenuItem::with_id(app, "open_app_data", "Open App Data", true, None::<&str>)?;
+    let open_config = MenuItem::with_id(app, "open_config", "Open Config Location", true, None::<&str>)?;
+    let open_binary = MenuItem::with_id(app, "open_binary", "Open Binary Location", true, None::<&str>)?;
     let start = MenuItem::with_id(app, "start", "Start Sidecar", true, None::<&str>)?;
     let stop = MenuItem::with_id(app, "stop", "Stop Sidecar", true, None::<&str>)?;
     let restart = MenuItem::with_id(app, "restart", "Restart Sidecar", true, None::<&str>)?;
@@ -22,6 +27,8 @@ pub fn setup_tray(app: &mut App) -> tauri::Result<()> {
             &show,
             &open_ui,
             &open_app_data,
+            &open_config,
+            &open_binary,
             &start,
             &stop,
             &restart,
@@ -59,6 +66,14 @@ pub fn setup_tray(app: &mut App) -> tauri::Result<()> {
             }
             "open_app_data" => {
                 let _ = open_app_data_dir(app.clone());
+            }
+            "open_config" => {
+                let _ = get_settings(app.clone())
+                    .and_then(|settings| reveal_config_path(app.clone(), settings));
+            }
+            "open_binary" => {
+                let _ = get_settings(app.clone())
+                    .and_then(|settings| reveal_binary_path(app.clone(), settings));
             }
             "start" => {
                 let manager = app.state::<SidecarManager>();
@@ -107,8 +122,24 @@ pub fn setup_tray(app: &mut App) -> tauri::Result<()> {
 }
 
 pub fn sync_tray_state(app: &AppHandle, phase: &str) {
+    let tooltip = app
+        .state::<SidecarManager>()
+        .current_state()
+        .ok()
+        .map(|state| tooltip_for_state(&state))
+        .unwrap_or_else(|| format!("cli_LH Cockpit: {phase}"));
+
     if let Some(tray) = app.tray_by_id(TRAY_ID) {
-        let _ = tray.set_tooltip(Some(&format!("cli_LH Cockpit: {phase}")));
+        let _ = tray.set_tooltip(Some(&tooltip));
+    }
+}
+
+fn tooltip_for_state(state: &SidecarStateSnapshot) -> String {
+    match state.message.as_deref() {
+        Some(message) if !message.trim().is_empty() => {
+            format!("cli_LH Cockpit: {} - {}", state.phase, message)
+        }
+        _ => format!("cli_LH Cockpit: {}", state.phase),
     }
 }
 
