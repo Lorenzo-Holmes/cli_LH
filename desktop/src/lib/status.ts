@@ -26,6 +26,18 @@ export type SidecarStatusResponse = {
     oauthModelAliases?: number;
     homeEnabled?: boolean;
   };
+  management?: {
+    available?: boolean;
+    localPasswordAvailable?: boolean;
+    remoteManagementAllowed?: boolean;
+    controlPanelEnabled?: boolean;
+    autoUpdatePanelEnabled?: boolean;
+    usageStatisticsEnabled?: boolean;
+    requestLogEnabled?: boolean;
+    loggingToFileEnabled?: boolean;
+    websocketAuthEnabled?: boolean;
+    tlsEnabled?: boolean;
+  };
 };
 
 export type ProbeResult = {
