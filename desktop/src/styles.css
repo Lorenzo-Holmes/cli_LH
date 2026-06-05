@@ -71,6 +71,17 @@ select { border: 1px solid var(--line); background: rgba(4,9,10,0.92); color: #e
 .summary-muted { border-color: rgba(255,189,74,0.22); }
 .runtime-panel { grid-column: span 2; }
 .runtime-grid { grid-template-columns: 120px minmax(0, 1fr); }
+.activity-overview-panel { grid-column: span 2; }
+.activity-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.activity-card { border: 1px solid var(--line); border-radius: 18px; padding: 14px; display: grid; gap: 10px; background: rgba(255,255,255,0.035); }
+.activity-card svg { width: 22px; color: var(--cyan); }
+.activity-card span { color: var(--text-muted); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+.activity-card strong { display: block; margin: 6px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.activity-card p { margin: 0; color: var(--text-muted); line-height: 1.45; font-size: 13px; }
+.activity-ok { border-color: rgba(125,255,157,0.28); }
+.activity-ok svg { color: var(--green); }
+.activity-warning { border-color: rgba(255,189,74,0.35); }
+.activity-warning svg { color: var(--amber); }
 .api-usage-panel { grid-column: span 2; }
 .copy-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; margin-bottom: 14px; }
 .copy-row code, .api-endpoint-card code { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 1px solid rgba(62,232,255,0.16); background: rgba(0,0,0,0.24); border-radius: 12px; padding: 10px; color: #dff4ef; font-family: "Cascadia Mono", Consolas, monospace; font-size: 12px; }
@@ -137,4 +148,4 @@ select { border: 1px solid var(--line); background: rgba(4,9,10,0.92); color: #e
 .wizard-step p, .wizard-issues p { margin: 0; color: var(--text-muted); }
 .wizard-issues { margin-top: 14px; display: grid; gap: 8px; padding: 14px; border: 1px solid rgba(255,189,74,0.22); border-radius: 18px; background: rgba(255,189,74,0.08); }
 .wizard-actions { margin-top: 16px; justify-content: flex-start; }
-@media (max-width: 1120px) { .app-shell { grid-template-columns: 1fr; } .sidebar { position: static; } .dashboard-grid { grid-template-columns: 1fr; } body { min-width: 0; } }
+@media (max-width: 1120px) { .app-shell { grid-template-columns: 1fr; } .sidebar { position: static; } .dashboard-grid { grid-template-columns: 1fr; } .activity-grid { grid-template-columns: 1fr; } body { min-width: 0; } }

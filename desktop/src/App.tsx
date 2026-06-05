@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityOverviewPanel } from "./components/ActivityOverviewPanel";
 import { ApiUsageGuidePanel } from "./components/ApiUsageGuidePanel";
 import { ConfigPanel } from "./components/ConfigPanel";
 import { ControlPanel } from "./components/ControlPanel";
@@ -282,6 +283,7 @@ export default function App() {
             onLogout={clearManagementSession}
           />
           <RuntimeSummaryPanel probe={probe} />
+          <ActivityOverviewPanel state={state} probe={probe} />
           <ApiUsageGuidePanel
             settings={normalizedSettings}
             state={state}

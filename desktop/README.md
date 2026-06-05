@@ -71,6 +71,20 @@ It shows the currently configured Base URL and a few common local endpoints:
 
 The panel intentionally shows URLs only. It does not read, display, or save API keys. The user should keep credentials in the client tool or in the normal `cli_LH` configuration path.
 
+## Activity Overview Panel
+
+The **Activity Overview** panel gives beginners a safe “is anything happening?” view.
+
+It shows only safe signals that already exist in desktop state or `/statusz`:
+
+- native sidecar phase,
+- last probe time and latency,
+- whether aggregate usage statistics are enabled,
+- whether request logging is enabled,
+- whether file logging is enabled.
+
+It intentionally does not read or display request bodies, prompts, responses, API keys, OAuth tokens, auth files, or full `config.yaml`. This keeps the dashboard useful without turning it into a sensitive data viewer.
+
 ## Responsibilities
 
 - React renders the control cockpit.
